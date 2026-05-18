@@ -1,0 +1,70 @@
+server:
+  port: ${SERVER_PORT:9090}
+
+spring:
+  application:
+    name: msvc-sri
+  profiles:
+    active: dev
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+
+debug: false
+xml:
+  storage:
+    path: /path/to/your/xml/storage
+app:
+  reports:
+    path: /home/epmapaadmin/reportsEpmapat
+  backend:
+    base-url: ${ERP_BACKEND_BASE_URL:http://192.168.0.165:9080}
+  email-ms:
+    base-url: ${EMAIL_MS_BASE_URL:http://localhost:9099}
+  mail:
+    from: facturacion@epmapatulcan.gob.ec
+    username: facturacion
+    display-name: EPMAPA-T
+    reply-to: facturacion@epmapatulcan.gob.ec
+interes:
+  tarea:
+    cron: 0 */1 * * * *
+sri:
+  ambiente: 2
+  polling:
+    attempts: 40
+    initialSleepMs: 2000
+    maxSleepMs: 8000
+    backoffFactor: 1.5
+    stopOnNoAutorizado: true
+  wsdl:
+    local:
+      recepcion: wsdl/RecepcionComprobantesOffline.wsdl
+      autorizacion: wsdl/AutorizacionComprobantesOffline.wsdl
+  endpoint:
+    recepcion:
+      pruebas: https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline
+      produccion: https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline
+    autorizacion:
+      pruebas: https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline
+      produccion: https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline
+
+net:
+  sf:
+    jasperreports:
+      awt:
+        ignore:
+          missing:
+            font=true:
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

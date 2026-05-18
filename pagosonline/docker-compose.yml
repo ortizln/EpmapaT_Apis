@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pagosonline-postgres
+    environment:
+      POSTGRES_DB: pagosonline_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: America/Guayaquil
+    volumes:
+      - pagosonline-postgres-data:/var/lib/postgresql/data
+    networks:
+      - epmapat-network
+
+  app:
+    build: .
+    container_name: pagosonline-app
+    ports:
+      - "32:32"
+    environment:
+      TZ: America/Guayaquil
+      SERVER_PORT: 32
+      DB_URL: jdbc:postgresql://postgres:5432/pagosonline_db
+      DB_USER: postgres
+      DB_PASS: postgres
+      PAGOSONLINE_API_BASE_URL: http://localhost:32
+      ERP_BACKEND_BASE_URL: http://192.168.0.165:9080/fec_factura
+    depends_on:
+      - postgres
+    networks:
+      - epmapat-network
+
+volumes:
+  pagosonline-postgres-data:
+
+networks:
+  epmapat-network:
+    external: true

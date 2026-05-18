@@ -1,0 +1,49 @@
+server:
+  port: ${SERVER_PORT:9099}
+
+spring:
+  application:
+    name: msvc-emails
+  profiles:
+    active: dev
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+  mail:
+    host: ${MAIL_HOST:smtp.elasticemail.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.ssl.checkserveridentity: false
+      mail.smtp.ssl.trust: ${MAIL_HOST:smtp.elasticemail.com}
+      mail.smtp.connectiontimeout: 8000
+      mail.smtp.timeout: 8000
+      mail.smtp.writetimeout: 8000
+      mail.debug: true
+mailms:
+  from: "EPMAPA-T <no-reply@epmapatulcan.gob.ec>"
+  attachment-storage:
+    base-path: "/data/attachments"
+  outbox:
+    batch-size: 20
+    max-attempts: 5
+    initial-backoff-seconds: 30
+    backoff-multiplier: 2
+    scheduler-fixed-delay-ms: 15000
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+

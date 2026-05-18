@@ -1,0 +1,171 @@
+services:
+  # ===================== BANDRED =====================
+  bandred-postgres:
+    image: postgres:16
+    container_name: bandred-postgres
+    environment:
+      POSTGRES_DB: bandred_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: America/Guayaquil
+    volumes:
+      - bandred-postgres-data:/var/lib/postgresql/data
+    networks:
+      - epmapat-network
+
+  bandred-app:
+    build: ./bandred
+    container_name: bandred-app
+    ports:
+      - "9091:9091"
+    environment:
+      TZ: America/Guayaquil
+      SERVER_PORT: 9091
+      DB_URL: jdbc:postgresql://bandred-postgres:5432/bandred_db
+      DB_USER: postgres
+      DB_PASS: postgres
+      PAGOSONLINE_API_BASE_URL: http://pagosonline-app:9092
+      ERP_BACKEND_BASE_URL: http://192.168.0.165:9080/fec_factura
+    depends_on:
+      - bandred-postgres
+    networks:
+      - epmapat-network
+
+  # ===================== EMAILS =====================
+  emails-postgres:
+    image: postgres:16
+    container_name: emails-postgres
+    environment:
+      POSTGRES_DB: emails_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: America/Guayaquil
+    volumes:
+      - emails-postgres-data:/var/lib/postgresql/data
+    networks:
+      - epmapat-network
+
+  emails-app:
+    build: ./emails
+    container_name: emails-app
+    ports:
+      - "9099:9099"
+    environment:
+      TZ: America/Guayaquil
+      SERVER_PORT: 9099
+      DB_URL: jdbc:postgresql://emails-postgres:5432/emails_db
+      DB_USER: postgres
+      DB_PASS: postgres
+      MAIL_HOST: ${MAIL_HOST:-smtp.elasticemail.com}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    depends_on:
+      - emails-postgres
+    networks:
+      - epmapat-network
+
+  # ===================== EPMAPAAPI =====================
+  epmapaapi-postgres:
+    image: postgres:16
+    container_name: epmapaapi-postgres
+    environment:
+      POSTGRES_DB: epmapaapi_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: America/Guayaquil
+    volumes:
+      - epmapaapi-postgres-data:/var/lib/postgresql/data
+    networks:
+      - epmapat-network
+
+  epmapaapi-app:
+    build: ./epmapaapi
+    container_name: epmapaapi-app
+    ports:
+      - "9085:9085"
+    environment:
+      TZ: America/Guayaquil
+      SERVER_PORT: 9085
+      DB_URL: jdbc:postgresql://epmapaapi-postgres:5432/epmapaapi_db
+      DB_USER: postgres
+      DB_PASS: postgres
+    depends_on:
+      - epmapaapi-postgres
+    networks:
+      - epmapat-network
+
+  # ===================== PAGOSONLINE =====================
+  pagosonline-postgres:
+    image: postgres:16
+    container_name: pagosonline-postgres
+    environment:
+      POSTGRES_DB: pagosonline_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: America/Guayaquil
+    volumes:
+      - pagosonline-postgres-data:/var/lib/postgresql/data
+    networks:
+      - epmapat-network
+
+  pagosonline-app:
+    build: ./pagosonline
+    container_name: pagosonline-app
+    ports:
+      - "32:32"
+    environment:
+      TZ: America/Guayaquil
+      SERVER_PORT: 32
+      DB_URL: jdbc:postgresql://pagosonline-postgres:5432/pagosonline_db
+      DB_USER: postgres
+      DB_PASS: postgres
+      PAGOSONLINE_API_BASE_URL: http://localhost:32
+      ERP_BACKEND_BASE_URL: http://192.168.0.165:9080/fec_factura
+    depends_on:
+      - pagosonline-postgres
+    networks:
+      - epmapat-network
+
+  # ===================== SRI-FILES =====================
+  sri-postgres:
+    image: postgres:16
+    container_name: sri-postgres
+    environment:
+      POSTGRES_DB: sri_files_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: America/Guayaquil
+    volumes:
+      - sri-postgres-data:/var/lib/postgresql/data
+    networks:
+      - epmapat-network
+
+  sri-app:
+    build: ./sri-files
+    container_name: sri-app
+    ports:
+      - "9090:9090"
+    environment:
+      TZ: America/Guayaquil
+      SERVER_PORT: 9090
+      DB_URL: jdbc:postgresql://sri-postgres:5432/sri_files_db
+      DB_USER: postgres
+      DB_PASS: postgres
+      ERP_BACKEND_BASE_URL: http://192.168.0.165:9080
+      EMAIL_MS_BASE_URL: http://emails-app:9099
+    depends_on:
+      - sri-postgres
+    networks:
+      - epmapat-network
+
+volumes:
+  bandred-postgres-data:
+  emails-postgres-data:
+  epmapaapi-postgres-data:
+  pagosonline-postgres-data:
+  sri-postgres-data:
+
+networks:
+  epmapat-network:
+    driver: bridge
