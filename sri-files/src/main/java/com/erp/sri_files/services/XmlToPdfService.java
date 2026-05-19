@@ -171,12 +171,12 @@ public class XmlToPdfService {
                 if ("2".equals(codigoPorcentaje)) {
                     subtotalIVA12 = subtotalIVA12.add(baseImponible);
                     totalIVA12 = totalIVA12.add(valor);
-                } else if ("3".equals(codigoPorcentaje) || "4".equals(codigoPorcentaje)) {
+                } else if ("3".equals(codigoPorcentaje) || "4".equals(codigoPorcentaje) || "6".equals(codigoPorcentaje)) {
                     subtotalIVA15 = subtotalIVA15.add(baseImponible);
                     totalIVA15 = totalIVA15.add(valor);
                 } else if ("0".equals(codigoPorcentaje)) {
                     subtotalIVA0 = subtotalIVA0.add(baseImponible);
-                } else if ("6".equals(codigoPorcentaje)) {
+                } else if ("8".equals(codigoPorcentaje)) {
                     subtotalNoObjetoIVA = subtotalNoObjetoIVA.add(baseImponible);
                 } else if ("7".equals(codigoPorcentaje)) {
                     subtotalExentoIVA = subtotalExentoIVA.add(baseImponible);
@@ -355,12 +355,12 @@ public class XmlToPdfService {
                 if ("2".equals(codigoPorcentaje)) {
                     subtotalIVA12 = subtotalIVA12.add(baseImponible);
                     totalIVA12 = totalIVA12.add(valor);
-                } else if ("3".equals(codigoPorcentaje) || "4".equals(codigoPorcentaje)) {
+                } else if ("3".equals(codigoPorcentaje) || "4".equals(codigoPorcentaje) || "6".equals(codigoPorcentaje)) {
                     subtotalIVA15 = subtotalIVA15.add(baseImponible);
                     totalIVA15 = totalIVA15.add(valor);
                 } else if ("0".equals(codigoPorcentaje)) {
                     subtotalIVA0 = subtotalIVA0.add(baseImponible);
-                } else if ("6".equals(codigoPorcentaje)) {
+                } else if ("8".equals(codigoPorcentaje)) {
                     subtotalNoObjetoIVA = subtotalNoObjetoIVA.add(baseImponible);
                 } else if ("7".equals(codigoPorcentaje)) {
                     subtotalExentoIVA = subtotalExentoIVA.add(baseImponible);

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import org.springframework.data.repository.query.Param;
 
 public interface FacturasR extends JpaRepository<Facturas, Long> {
     @Query(value = "select f.idfactura, sum(rf.cantidad * rf.valorunitario) as subtotal, c.nombre, c.cedula, a.idabonado as cuenta, a.direccionubicacion, f.formapago, e.feccrea, f.fechatransferencia as fectransferencia "
@@ -61,4 +62,32 @@ public interface FacturasR extends JpaRepository<Facturas, Long> {
             
     """, nativeQuery = true)
     public List<FacturasSinCobroInter> findFacturasSinCobro(Long cuenta);
+
+    @Query("SELECT f FROM Facturas f LEFT JOIN FETCH f.idmodulo WHERE f.idfactura IN :ids")
+    List<Facturas> findByIdfacturaInWithModulo(@Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT f.idfactura, f.idabonado, m.idmodulo, m.descripcion AS modulo_desc,
+               c.idcategoria, c.descripcion AS categoria_desc, a.idcategoria_categorias,
+               f.totaltarifa, f.formapago, f.pagado, f.fechacobro,
+               cl.nombre AS cliente_nombre, f.fechaeliminacion, f.fechaanulacion
+        FROM facturas f
+        JOIN modulos m ON f.idmodulo = m.idmodulo
+        JOIN abonados a ON f.idabonado = a.idabonado
+        JOIN categorias c ON a.idcategoria_categorias = c.idcategoria
+        JOIN clientes cl ON f.idcliente = cl.idcliente
+        WHERE f.idfactura = ?1
+    """, nativeQuery = true)
+    List<Object[]> findFacturaDetail(Long idfactura);
+
+    @Query(value = """
+        SELECT f.idfactura, f.totaltarifa, f.fechacobro, f.formapago, m.descripcion AS modulo_desc,
+               fp.descripcion AS forma_pago_desc
+        FROM facturas f
+        JOIN modulos m ON f.idmodulo = m.idmodulo
+        LEFT JOIN formacobro fp ON f.formapago = fp.idformacobro
+        WHERE f.idabonado = ?1 AND f.pagado = 1 AND f.fechacobro IS NOT NULL
+        ORDER BY f.fechacobro DESC
+    """, nativeQuery = true)
+    List<Object[]> findPagoHistorialByAbonado(Long idabonado);
 }
