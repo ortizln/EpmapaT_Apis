@@ -1,17 +1,4 @@
 services:
-  postgres:
-    image: postgres:16
-    container_name: epmapaapi-postgres
-    environment:
-      POSTGRES_DB: ErpEpmapaT
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: EpmapaT2025
-      TZ: America/Guayaquil
-    volumes:
-      - epmapaapi-postgres-data:/var/lib/postgresql/data
-    networks:
-      - epmapat-network
-
   app:
     build: .
     container_name: epmapaapi-app
@@ -23,13 +10,8 @@ services:
       DB_URL: jdbc:postgresql://172.30.10.4:5432/ErpEpmapaT
       DB_USER: postgres
       DB_PASS: EpmapaT2025
-    depends_on:
-      - postgres
     networks:
       - epmapat-network
-
-volumes:
-  epmapaapi-postgres-data:
 
 networks:
   epmapat-network:

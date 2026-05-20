@@ -15,7 +15,7 @@ build_and_deploy() {
 
     echo "[1/3] Compilando JAR..."
     chmod +x mvnw
-    ./mvnw clean package -DskipTests -q
+    ./mvnw clean package -Dmaven.test.skip=true -q
 
     echo "[2/3] Construyendo imagen Docker..."
     docker build -t "${module}-app" . -q
