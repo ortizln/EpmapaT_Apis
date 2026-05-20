@@ -9,6 +9,7 @@ echo " Construyendo $MODULE"
 echo "==============================="
 
 echo "[1/3] Compilando JAR..."
+chmod +x mvnw
 ./mvnw clean package -DskipTests
 
 echo "[2/3] Construyendo imagen Docker..."

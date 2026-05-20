@@ -13,6 +13,7 @@ cd "$(dirname "$0")"
 
 # 1. Compilar JAR
 echo "[1/3] Compilando JAR..."
+chmod +x mvnw
 ./mvnw clean package -DskipTests
 
 # 2. Construir imagen Docker

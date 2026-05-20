@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-MODULE="emails"
+MODULE="sri-files"
 cd "$(dirname "$0")"
 
 echo "==============================="
 echo " Construyendo $MODULE"
 echo "==============================="
 
-echo "[1/3] Compilando JAR (opcional, el Dockerfile es multi-etapa)..."
+echo "[1/3] Compilando JAR..."
 chmod +x mvnw
 ./mvnw clean package -DskipTests
 
