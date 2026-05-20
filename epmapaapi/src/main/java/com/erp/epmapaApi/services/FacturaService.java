@@ -2,8 +2,10 @@ package com.erp.epmapaApi.services;
 
 import com.erp.epmapaApi.DTO.FacturaDTO;
 import com.erp.epmapaApi.Interfaces.FacturasSinCobroInter;
+import com.erp.epmapaApi.models.Abonados;
 import com.erp.epmapaApi.models.Lecturas;
 import com.erp.epmapaApi.models.Rubroxfac;
+import com.erp.epmapaApi.repositories.AbonadosR;
 import com.erp.epmapaApi.repositories.FacturasR;
 import com.erp.epmapaApi.repositories.LecturasR;
 import com.erp.epmapaApi.repositories.RubroxfacR;
@@ -20,6 +22,7 @@ public class FacturaService {
     private final FacturasR dao;
     private final LecturasR lecturasR;
     private final RubroxfacR rubroxfacR;
+    private final AbonadosR abonadosR;
 
     private void validateInput(Long cuenta) {
         if (cuenta == null) {
@@ -139,6 +142,22 @@ public class FacturaService {
             item.put("formapago", row[3]);
             item.put("modulo", row[4]);
             item.put("formaPagoDesc", row[5]);
+            result.add(item);
+        }
+        return result;
+    }
+
+    public List<Map<String, Object>> findCuentasPorIdentificacion(String identificacion) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        List<Abonados> abonados = abonadosR.findByIdentificacionResponsable(identificacion);
+        for (Abonados a : abonados) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("idabonado", a.getIdabonado());
+            item.put("codigoCuenta", a.getIdabonado());
+            item.put("direccion", a.getDireccionubicacion());
+            if (a.getIdresponsable() != null) {
+                item.put("nombreResponsable", a.getIdresponsable().getNombre());
+            }
             result.add(item);
         }
         return result;

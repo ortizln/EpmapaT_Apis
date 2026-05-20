@@ -35,6 +35,8 @@ public class FacturasApi {
     @GetMapping("/sincobrar")
     public ResponseEntity<Object> getFacturasSinCobro(@RequestParam(required = false) Long cuenta,
                                                        @RequestParam(required = false) String identificacion) throws Exception {
+        System.out.println("Iniciando facturas " + identificacion );
+        System.out.println("Iniciando facturas " + cuenta );
         if (cuenta != null) {
             Object datos = facturaService.findFacturasSinCobro(cuenta);
             if (datos == null) {
@@ -42,7 +44,14 @@ public class FacturasApi {
             }
             return ResponseEntity.ok(datos);
         }
-        return ResponseEntity.badRequest().body(Map.of("mensaje", "Debe proporcionar 'cuenta'"));
+        if (identificacion != null && !identificacion.isBlank()) {
+            List<Map<String, Object>> cuentas = facturaService.findCuentasPorIdentificacion(identificacion);
+            if (cuentas.isEmpty()) {
+                return ResponseEntity.ok(Map.of("mensaje", "No se encontraron cuentas para la identificación proporcionada"));
+            }
+            return ResponseEntity.ok(cuentas);
+        }
+        return ResponseEntity.badRequest().body(Map.of("mensaje", "Debe proporcionar 'cuenta' o 'identificacion'"));
     }
 
     @GetMapping("/fac_electronicas-abo")
@@ -68,6 +77,7 @@ public class FacturasApi {
             @RequestParam Long idcliente,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        System.out.println(idcliente);
         String cedula = clientesR.findById(idcliente)
                 .map(Clientes::getCedula)
                 .orElse(null);
