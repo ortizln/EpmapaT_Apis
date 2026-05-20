@@ -10,6 +10,9 @@ services:
       DB_URL: jdbc:postgresql://172.30.10.4:5432/ErpEpmapaT
       DB_USER: postgres
       DB_PASS: EpmapaT2025
+      SRI_DB_URL: jdbc:postgresql://172.30.10.4:5432/ErpEpmapaT
+      SRI_DB_USER: postgres
+      SRI_DB_PASS: EpmapaT2025
     networks:
       - epmapat-network
 
