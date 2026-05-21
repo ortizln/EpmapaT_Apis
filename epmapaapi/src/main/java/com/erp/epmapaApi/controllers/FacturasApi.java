@@ -35,8 +35,7 @@ public class FacturasApi {
     @GetMapping("/sincobrar")
     public ResponseEntity<Object> getFacturasSinCobro(@RequestParam(required = false) Long cuenta,
                                                        @RequestParam(required = false) String identificacion) throws Exception {
-        System.out.println("Iniciando facturas " + identificacion );
-        System.out.println("Iniciando facturas " + cuenta );
+
         if (cuenta != null) {
             Object datos = facturaService.findFacturasSinCobro(cuenta);
             if (datos == null) {
