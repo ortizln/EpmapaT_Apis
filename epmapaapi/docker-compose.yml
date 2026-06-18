@@ -7,12 +7,12 @@ services:
     environment:
       TZ: America/Guayaquil
       SERVER_PORT: 8080
-      DB_URL: jdbc:postgresql://172.30.10.4:5432/ErpEpmapaT
+      DB_URL: jdbc:postgresql://192.168.0.46:5432/ErpEpmapaT
       DB_USER: postgres
-      DB_PASS: EpmapaT2025
-      SRI_DB_URL: jdbc:postgresql://172.30.10.4:5432/ErpEpmapaT
+      DB_PASS: 3pmapaT24
+      SRI_DB_URL: jdbc:postgresql://192.168.0.46:5432/ErpEpmapaT
       SRI_DB_USER: postgres
-      SRI_DB_PASS: EpmapaT2025
+      SRI_DB_PASS: 3pmapaT24
     networks:
       - epmapat-network
 
