@@ -54,6 +54,7 @@ public class FacturaXmlGeneratorService {
     public void automatizacionEnvioFacturasElectonicas() {
         System.out.println("⏰ Ejecutando envío de facturas : " + LocalDateTime.now());
         try {
+            List<Detalle> detalles = List.of();
             PageRequest limit = PageRequest.of(0, 5); // primera "página" de 5
             Page<Factura> page = facturaR.findByEstado("I", limit);
             List<Factura> facturas = page.getContent();
@@ -76,6 +77,7 @@ public class FacturaXmlGeneratorService {
      * ========================================================== */
     public String generarXmlFactura(Factura factura) throws FacturaElectronicaException {
         try {
+            List<Detalle> detalles = mapearDetalles(obtenerDetallesFactura(factura));
 
             // 1) Raíz
             Comprobante comp = new Comprobante();
@@ -85,10 +87,10 @@ public class FacturaXmlGeneratorService {
             comp.setInfoTributaria(crearInfoTributaria(factura));
 
             // 3) infoFactura (totales, impuestos, importeTotal)
-            comp.setInfoFactura(crearInfoFactura(factura));
+            comp.setInfoFactura(crearInfoFactura(factura, detalles));
 
             // 4) detalles (cada línea con sus impuestos)
-            comp.setDetalles(mapearDetalles(factura.getDetalles()));
+            comp.setDetalles(detalles);
 
 
             // 👉 Construir/actualizar infoAdicional
@@ -225,10 +227,9 @@ public class FacturaXmlGeneratorService {
     /* ==========================================================
      * BLOQUE: infoFactura + totales
      * ========================================================== */
-    private InfoFactura crearInfoFactura(Factura factura) {
-        TotalSinImpuestos tSiRepo = fDetalleR.getTotalSinImpuestos(factura.getIdfactura());
-        BigDecimal totalSinImp = nvl(tSiRepo.getTotalsinimpuestos()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal descuento   = nvl(tSiRepo.getDescuento()).setScale(2, RoundingMode.HALF_UP);
+    private InfoFactura crearInfoFactura(Factura factura, List<Detalle> detalles) {
+        BigDecimal totalSinImp = calcularTotalSinImpuestos(detalles);
+        BigDecimal descuento   = calcularTotalDescuento(detalles);
 
         InfoFactura info = new InfoFactura();
         info.setFechaEmision(formatForXml(factura.getFechaemision()));
@@ -242,7 +243,7 @@ public class FacturaXmlGeneratorService {
         info.setTotalDescuento(descuento);
 
         // totalConImpuestos (nunca vacío; fallback IVA 0%)
-        TotalConImpuestos tci = crearTotalConImpuestos(factura, totalSinImp, descuento);
+        TotalConImpuestos tci = crearTotalConImpuestos(detalles, totalSinImp, descuento);
         info.setTotalConImpuestos(tci);
 
         BigDecimal sumaImpuestos = tci.getTotalImpuestos() == null ? BigDecimal.ZERO
@@ -285,26 +286,26 @@ public class FacturaXmlGeneratorService {
 
     /* TotalConImpuestos agregando por (codigo, codigoPorcentaje).
        Si no hay impuestos en las líneas -> agrega un bloque IVA 0% con base neta. */
-    private TotalConImpuestos crearTotalConImpuestos(Factura factura,
+    private TotalConImpuestos crearTotalConImpuestos(List<Detalle> detalles,
                                                      BigDecimal totalSinImp,
                                                      BigDecimal descuento) {
 
         TotalConImpuestos tci = new TotalConImpuestos();
 
         Map<String, TotalesAcumulados> agrupado =
-                factura.getDetalles() == null ? Map.of() :
-                        factura.getDetalles().stream()
+                detalles == null ? Map.of() :
+                        detalles.stream()
                                 .filter(Objects::nonNull)
-                                .map(FacturaDetalle::getImpuestos)
+                                .map(Detalle::getImpuestos)
                                 .filter(Objects::nonNull)
                                 .flatMap(List::stream)
                                 .collect(Collectors.groupingBy(
-                                        i -> i.getCodigoimpuesto() + "|" + obtenerCodigoPorcentajeSeguro(i),
+                                        i -> i.getCodigo() + "|" + nvlStr(i.getCodigoPorcentaje(), "0"),
                                         Collectors.reducing(new TotalesAcumulados(),
                                                 i -> {
-                                                    BigDecimal base   = nvl(i.getBaseimponible());
-                                                    BigDecimal tarifa = obtenerTarifaPorcentaje(i.getCodigoimpuesto(),
-                                                            obtenerCodigoPorcentajeSeguro(i)); // % (0,12,15,...)
+                                                    BigDecimal base   = nvl(i.getBaseImponible());
+                                                    BigDecimal tarifa = obtenerTarifaPorcentaje(i.getCodigo(),
+                                                            nvlStr(i.getCodigoPorcentaje(), "0")); // % (0,12,15,...)
                                                     BigDecimal valor  = base.multiply(tarifa)
                                                             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                                                     return new TotalesAcumulados(base, valor);
@@ -360,6 +361,7 @@ public class FacturaXmlGeneratorService {
     /* Devuelve % como número (0, 5, 12, 14, 15, ...) según codigo/codigoPorcentaje que manejes. */
     private static BigDecimal obtenerTarifaPorcentaje(String codigo, String codigoPorcentaje) {
         if ("2".equals(codigo)) { // IVA
+            if ("4".equals(codigoPorcentaje)) return new BigDecimal("15");
             switch (codigoPorcentaje) {
                 case "0": return BigDecimal.ZERO;
                 case "2": return new BigDecimal("12"); // histórico 12%
@@ -715,4 +717,25 @@ public class FacturaXmlGeneratorService {
         info.getPagos().add(p);
     }
 
+    private static BigDecimal calcularTotalSinImpuestos(List<Detalle> detalles) {
+        if (detalles == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return detalles.stream()
+                .map(Detalle::getPrecioTotalSinImpuesto)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal calcularTotalDescuento(List<Detalle> detalles) {
+        if (detalles == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return detalles.stream()
+                .map(Detalle::getDescuento)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
 }
