@@ -13,9 +13,10 @@ import java.util.List;
 
 public interface FacturaR extends JpaRepository<Factura, Long>{
     Factura findByIdfactura(Long idfactura);
-    @Query("SELECT f FROM Factura f WHERE f.estado = :estado ORDER BY f.idfactura ASC")
+    @Query("SELECT f FROM Factura f WHERE UPPER(TRIM(COALESCE(f.estado, ''))) = UPPER(TRIM(:estado)) ORDER BY f.idfactura ASC")
     List<Factura> _findByEstado(@Param("estado") String estado, Pageable pageable);
-    Page<Factura> findByEstado(String estado, PageRequest pageable);
+    @Query("SELECT f FROM Factura f WHERE UPPER(TRIM(COALESCE(f.estado, ''))) = UPPER(TRIM(:estado)) ORDER BY f.idfactura ASC")
+    Page<Factura> findByEstadoNormalizado(@Param("estado") String estado, Pageable pageable);
 
     @Query("SELECT f FROM Factura f WHERE f.referencia = :referencia ORDER BY f.idfactura ASC")
     List<Factura> findByReferencia(@Param("referencia") String referencia);

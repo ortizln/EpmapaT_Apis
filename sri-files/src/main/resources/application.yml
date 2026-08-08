@@ -5,12 +5,12 @@ spring:
   application:
     name: msvc-sri
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASS:}}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -36,6 +36,11 @@ interes:
   tarea:
     cron: 0 */1 * * * *
 sri:
+  scheduler:
+    envio-facturas:
+      cron: ${SRI_SCHEDULER_ENVIO_FACTURAS_CRON:0 */1 * * * *}
+    recuperacion-xml:
+      cron: ${SRI_SCHEDULER_RECUPERACION_XML_CRON:30 */3 * * * *}
   ambiente: 2
   polling:
     attempts: 40

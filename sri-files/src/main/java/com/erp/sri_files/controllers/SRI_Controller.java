@@ -501,11 +501,6 @@ public class SRI_Controller {
                         new AttachmentDTO(nombreXml, "application/xml", xmlBase64)
                 );
                 // --- Destinatarios ---
-                // Usa el correo del comprador si lo tienes en la entidad; de lo contrario, uno de prueba
-                /*List<String> to = (factura.getEmailcomprador() != null && !factura.getEmailcomprador().isBlank())
-                        ? java.util.List.of(factura.getEmailcomprador().trim())
-                        : java.util.List.of("destinatario@dominio.com");*/
-
                 List<String> to = (java.util.List.of("ortizln9@gmail.com", "alexis.ortiz81@outlook.com"));
 
 // CC/BCC opcionales
