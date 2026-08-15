@@ -1,0 +1,130 @@
+<app-page-header
+  eyebrow="Resumen"
+  title="Dashboard operativo"
+  description="Vista central del volumen documental, estados de procesamiento y alertas activas."
+  badge="Tiempo real"
+/>
+
+<div class="context-banner" *ngIf="companyContext.empresaActiva() as empresaActiva">
+  <span>Empresa activa</span>
+  <strong>{{ empresaActiva.razonSocial }}</strong>
+  <small>{{ empresaActiva.ruc }}</small>
+</div>
+
+<section class="hero panel">
+  <div>
+    <p class="eyebrow">Pulso de la plataforma</p>
+    <h2>{{ getHeroTitle() }}</h2>
+    <p>{{ getHeroDescription() }}</p>
+  </div>
+
+  <button type="button" class="ghost-button" (click)="cargarResumen()" [disabled]="loading">
+    {{ loading ? 'Actualizando...' : 'Actualizar resumen' }}
+  </button>
+</section>
+
+<p class="feedback feedback--loading" *ngIf="loading">Consultando indicadores operativos...</p>
+<p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+<section class="metrics" *ngIf="snapshot as data">
+  <article class="metric-card"><span>Total documental</span><strong>{{ data.resumen.total }}</strong><p>Comprobantes registrados en la plataforma.</p></article>
+  <article class="metric-card"><span>Recibidos hoy</span><strong>{{ data.resumen.recibidos }}</strong><p>Ingresados durante la jornada actual.</p></article>
+  <article class="metric-card"><span>Autorizados</span><strong>{{ data.resumen.autorizados }}</strong><p>Documentos que ya superaron la etapa SRI.</p></article>
+  <article class="metric-card"><span>Procesando</span><strong>{{ data.resumen.procesando }}</strong><p>Siguen en cola o procesamiento interno.</p></article>
+  <article class="metric-card metric-card--danger"><span>Con errores</span><strong>{{ data.resumen.errores }}</strong><p>Requieren revision por fallos de validacion o envio.</p></article>
+  <article class="metric-card metric-card--warning"><span>Correos pendientes</span><strong>{{ data.resumen.correosPendientes }}</strong><p>Documentos autorizados que aun esperan notificacion.</p></article>
+</section>
+
+<section class="workspace" *ngIf="snapshot as data">
+  <article class="panel">
+    <div class="panel__header"><div><h3>Distribucion por tipo</h3><p>Que clase de documentos esta dominando la operacion.</p></div></div>
+    <div class="table-shell" *ngIf="data.porTipo.length; else emptyMetrics">
+      <table>
+        <thead><tr><th>Tipo</th><th>Total</th><th>Impacto</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let item of data.porTipo">
+            <td>{{ formatLabel(item.tipo) }}</td>
+            <td>{{ item.cantidad }}</td>
+            <td><div class="distribution-bar"><span [style.width.%]="calculateWidth(item.cantidad, getMaxPorTipo())"></span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel__header"><div><h3>Estados actuales</h3><p>Lectura rapida del flujo operativo en backend.</p></div></div>
+    <div class="table-shell" *ngIf="data.porEstado.length; else emptyMetrics">
+      <table>
+        <thead><tr><th>Estado</th><th>Total</th><th>Impacto</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let item of data.porEstado">
+            <td>{{ formatLabel(item.estado) }}</td>
+            <td>{{ item.cantidad }}</td>
+            <td><div class="distribution-bar distribution-bar--status"><span [style.width.%]="calculateWidth(item.cantidad, getMaxPorEstado())"></span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<section class="workspace" *ngIf="snapshot as data">
+  <article class="panel">
+    <div class="panel__header"><div><h3>Volumen por dia</h3><p>Actividad reciente segun la fecha de recepcion registrada.</p></div></div>
+    <div class="table-shell" *ngIf="data.porDia.length; else emptyMetrics">
+      <table>
+        <thead><tr><th>Fecha</th><th>Total</th><th>Impacto</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let item of data.porDia">
+            <td>{{ item.fecha }}</td>
+            <td>{{ item.cantidad }}</td>
+            <td><div class="distribution-bar"><span [style.width.%]="calculateWidth(item.cantidad, getMaxPorDia())"></span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel panel--spotlight">
+    <div class="panel__header"><div><h3>Foco operativo</h3><p>Prioridades sugeridas para el equipo.</p></div></div>
+    <div class="spotlight-grid">
+      <article class="spotlight-item"><strong>{{ data.resumen.errores }}</strong><span>Documentos con fallos operativos activos.</span></article>
+      <article class="spotlight-item"><strong>{{ data.resumen.noAutorizados }}</strong><span>Comprobantes rechazados o no autorizados.</span></article>
+      <article class="spotlight-item"><strong>{{ data.resumen.procesando }}</strong><span>Elementos en cola antes de finalizar el circuito.</span></article>
+    </div>
+  </article>
+</section>
+
+<section class="workspace" *ngIf="snapshot as data">
+  <article class="panel">
+    <div class="panel__header"><div><h3>Errores por etapa</h3><p>Distribucion de incidencias registradas por el workflow.</p></div></div>
+    <div class="table-shell" *ngIf="data.erroresPorEtapa.length; else emptyMetrics">
+      <table>
+        <thead><tr><th>Etapa</th><th>Total</th><th>Impacto</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let item of data.erroresPorEtapa">
+            <td>{{ formatLabel(item.etapa) }}</td>
+            <td>{{ item.cantidad }}</td>
+            <td><div class="distribution-bar distribution-bar--status"><span [style.width.%]="calculateWidth(item.cantidad, getMaxErroresPorEtapa())"></span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel__header"><div><h3>Tiempos promedio</h3><p>Lectura rapida de duraciones medias del proceso.</p></div></div>
+    <div class="spotlight-grid">
+      <article class="spotlight-item"><strong>{{ formatDuration(data.tiempos.promedioProcesamientoMs) }}</strong><span>Promedio desde inicio hasta finalizacion.</span></article>
+      <article class="spotlight-item"><strong>{{ formatDuration(data.tiempos.promedioAutorizacionMs) }}</strong><span>Promedio desde recepcion hasta autorizacion.</span></article>
+    </div>
+  </article>
+</section>
+
+<ng-template #emptyMetrics>
+  <div class="empty-state">
+    <strong>Sin datos suficientes</strong>
+    <p>Cuando empiecen a registrarse documentos, el resumen operativo aparecera aqui.</p>
+  </div>
+</ng-template>

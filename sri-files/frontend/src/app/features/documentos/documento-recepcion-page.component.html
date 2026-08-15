@@ -1,0 +1,71 @@
+<app-page-header
+  eyebrow="Operacion"
+  [title]="pageTitle()"
+  [description]="pageDescription()"
+  badge="Nuevo ingreso"
+>
+  <button type="button" class="secondary-button" (click)="volverAlListado()">Volver al listado</button>
+</app-page-header>
+
+<section class="workspace">
+  <article class="panel selector-panel">
+    <div class="selector-panel__header">
+      <div>
+        <h2>Tipo documental</h2>
+        <p>Selecciona el comprobante que deseas recepcionar para construir el formulario correspondiente.</p>
+      </div>
+
+      <select [value]="tipoSeleccionado" (change)="onTipoChange($event)" [disabled]="forcedTipoDocumento() !== null">
+        <option *ngFor="let tipo of tiposDocumento" [value]="tipo">{{ tipo }}</option>
+      </select>
+    </div>
+
+    <div class="meta-grid meta-grid--company" *ngIf="companyContext.empresaActiva() as empresaActiva">
+      <div>
+        <span>Empresa activa</span>
+        <strong>{{ empresaActiva.razonSocial }}</strong>
+      </div>
+      <div>
+        <span>RUC</span>
+        <strong>{{ empresaActiva.ruc }}</strong>
+      </div>
+      <div>
+        <span>Ambiente SRI</span>
+        <strong>{{ empresaActiva.ambienteSri === 2 ? 'Produccion' : 'Pruebas' }}</strong>
+      </div>
+    </div>
+
+    <div class="meta-grid" *ngIf="contrato">
+      <div>
+        <span>Endpoint</span>
+        <strong>{{ contrato.endpoint }}</strong>
+      </div>
+      <div>
+        <span>Metodo</span>
+        <strong>{{ contrato.metodo }}</strong>
+      </div>
+      <div>
+        <span>Secciones</span>
+        <strong>{{ contrato.secciones.length }}</strong>
+      </div>
+    </div>
+
+    <p class="feedback feedback--loading" *ngIf="loadingContrato">Cargando contrato documental...</p>
+    <p class="feedback feedback--error" *ngIf="errorContrato">{{ errorContrato }}</p>
+  </article>
+
+  <app-documento-form-dinamico
+    [contrato]="contrato"
+    [form]="form"
+    [seccionesSimples]="seccionesSimples"
+    [seccionesMultiples]="seccionesMultiples"
+    [recepcionResponse]="recepcionResponse"
+    [errorRecepcion]="errorRecepcion"
+    [submitting]="submitting"
+    [loadingContrato]="loadingContrato"
+    (reiniciar)="resetForm()"
+    (enviar)="submit()"
+    (agregarItem)="addMultipleItem($event)"
+    (quitarItem)="removeMultipleItem($event.sectionName, $event.index)"
+  />
+</section>

@@ -1,0 +1,110 @@
+<app-page-header *ngIf="!embedded()" eyebrow="Configuracion" title="Puntos de emision" badge="Solo ADMIN" />
+
+<section class="workspace">
+  <article class="panel form-panel" *ngIf="!embedded()">
+    <div class="panel__header">
+      <div>
+        <h3>{{ editingId ? 'Editar punto de emision' : 'Nuevo punto de emision' }}</h3>
+        <p>Configuramos los puntos de emision disponibles por establecimiento.</p>
+      </div>
+    </div>
+
+    <form class="point-form" [formGroup]="form" (ngSubmit)="guardar()">
+      <label>
+        <span>Empresa</span>
+        <select formControlName="empresaId" (change)="onEmpresaChange()">
+          <option value="">Selecciona una empresa</option>
+          <option *ngFor="let empresa of empresas" [value]="empresa.id">{{ empresa.razonSocial }}</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Establecimiento</span>
+        <select formControlName="establecimientoId" (change)="onEstablecimientoChange()">
+          <option value="">Selecciona un establecimiento</option>
+          <option *ngFor="let establecimiento of establecimientos" [value]="establecimiento.id">
+            {{ establecimiento.codigo }} - {{ establecimiento.nombre || 'Sin nombre' }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        <span>Codigo</span>
+        <input type="text" formControlName="codigo" maxlength="3" />
+      </label>
+
+      <label>
+        <span>Nombre</span>
+        <input type="text" formControlName="nombre" />
+      </label>
+
+      <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
+
+      <div class="actions">
+        <button type="submit" class="primary-button" [disabled]="saving">
+          {{ saving ? 'Guardando...' : editingId ? 'Actualizar punto' : 'Crear punto' }}
+        </button>
+        <button type="button" class="ghost-button" (click)="resetForm()" [disabled]="saving">
+          Limpiar
+        </button>
+      </div>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel__header">
+      <div>
+        <h3>Puntos registrados</h3>
+        <p>Listado filtrado por el establecimiento seleccionado.</p>
+      </div>
+      <div class="header-actions">
+        <span class="panel-badge">{{ puntos.length }} puntos</span>
+        <button *ngIf="embedded()" type="button" class="primary-button" (click)="irANuevoPunto()">
+          Nuevo punto
+        </button>
+      </div>
+    </div>
+
+    <p class="feedback feedback--loading" *ngIf="loadingEmpresas">Cargando empresas...</p>
+    <p class="feedback feedback--loading" *ngIf="loadingEstablecimientos">Cargando establecimientos...</p>
+    <p class="feedback feedback--loading" *ngIf="loading">Cargando puntos de emision...</p>
+    <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+    <div class="table-shell" *ngIf="puntos.length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let punto of puntos">
+            <td>{{ punto.codigo }}</td>
+            <td>{{ punto.nombre || 'N/D' }}</td>
+            <td>
+              <span class="status-pill" [class.status-pill--inactive]="!punto.activo">
+                {{ punto.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <button type="button" class="ghost-button" (click)="embedded() ? irAEditarPunto(punto) : editar(punto)">Editar</button>
+              <button type="button" class="ghost-button" (click)="cambiarEstado(punto)" [disabled]="savingStateId === punto.id">
+                {{ savingStateId === punto.id ? 'Procesando...' : punto.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>No hay puntos de emision para este establecimiento</strong>
+    <p>Selecciona empresa y establecimiento para crear la estructura operativa.</p>
+  </div>
+</ng-template>

@@ -1,0 +1,127 @@
+.workspace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.panel {
+  padding: var(--space-5);
+}
+
+.panel__header {
+  margin-bottom: var(--space-4);
+}
+
+.panel__header h3 {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.panel__header p {
+  margin: 0.45rem 0 0;
+  color: var(--color-text-soft);
+}
+
+.company-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.company-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.company-form--config {
+  align-content: start;
+}
+
+.checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: var(--space-3) !important;
+}
+
+.checkbox input {
+  width: auto;
+  min-height: auto;
+}
+
+.cert-summary {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+}
+
+.cert-alert {
+  display: grid;
+  gap: 0.35rem;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+}
+
+.cert-alert--danger {
+  color: var(--color-danger);
+  background: rgba(198, 69, 69, 0.08);
+  border-color: rgba(198, 69, 69, 0.16);
+}
+
+.cert-alert--warning {
+  color: var(--color-warning);
+  background: rgba(197, 134, 30, 0.08);
+  border-color: rgba(197, 134, 30, 0.18);
+}
+
+.cert-alert--success {
+  color: var(--color-success);
+  background: rgba(31, 139, 83, 0.08);
+  border-color: rgba(31, 139, 83, 0.18);
+}
+
+.cert-alert--muted {
+  color: var(--color-text-soft);
+  background: rgba(65, 86, 109, 0.08);
+  border-color: rgba(65, 86, 109, 0.12);
+}
+
+.feedback {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+}
+
+.feedback--loading,
+.feedback--info {
+  color: var(--color-primary-strong);
+  background: rgba(33, 107, 212, 0.08);
+}
+
+.feedback--error {
+  color: var(--color-danger);
+  background: rgba(198, 69, 69, 0.1);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1080px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .panel {
+    padding: var(--space-4);
+  }
+
+  .actions > * {
+    flex: 1 1 100%;
+  }
+}

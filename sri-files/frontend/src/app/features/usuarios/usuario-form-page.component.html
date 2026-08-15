@@ -1,0 +1,70 @@
+<app-page-header
+  eyebrow="Seguridad"
+  [title]="usuario ? 'Editar usuario' : 'Nuevo usuario'"
+  description="Formulario dedicado para crear usuarios o administrar credenciales y estado."
+  badge="Solo ADMIN"
+>
+  <button type="button" class="secondary-button" (click)="volver()">Volver a usuarios</button>
+</app-page-header>
+
+<section class="workspace">
+  <article class="panel" *ngIf="!usuario; else editMode">
+    <div class="panel__header">
+      <div>
+        <h2>Nuevo usuario</h2>
+        <p>Crea accesos operativos para el equipo y asigna su rol inicial.</p>
+      </div>
+    </div>
+
+    <form class="user-form" [formGroup]="createForm" (ngSubmit)="crearUsuario()">
+      <label><span class="form-label">Username</span><input type="text" formControlName="username" placeholder="operador.sri" /></label>
+      <label><span class="form-label">Nombre completo</span><input type="text" formControlName="nombre" placeholder="Operador SRI" /></label>
+      <label><span class="form-label">Correo</span><input type="email" formControlName="correo" placeholder="operador@empresa.ec" /></label>
+      <label><span class="form-label">Contrasena inicial</span><input type="password" formControlName="password" placeholder="Temporal123" /></label>
+      <label><span class="form-label">Rol</span><select formControlName="rol"><option value="ADMIN">ADMIN</option><option value="OPERADOR">OPERADOR</option></select></label>
+
+      <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+      <div class="actions">
+        <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Creando...' : 'Crear usuario' }}</button>
+        <button type="button" class="ghost-button" (click)="volver()" [disabled]="saving">Cancelar</button>
+      </div>
+    </form>
+  </article>
+
+  <ng-template #editMode>
+    <article class="panel">
+      <div class="panel__header">
+        <div>
+          <h2>Administrar usuario</h2>
+          <p>En el estado actual del backend podemos gestionar estado y credenciales del usuario.</p>
+        </div>
+      </div>
+
+      <div class="modal-user__summary" *ngIf="usuario as currentUser">
+        <div><strong>Usuario:</strong> {{ currentUser.username }}</div>
+        <div><strong>Nombre:</strong> {{ currentUser.nombre }}</div>
+        <div><strong>Correo:</strong> {{ currentUser.correo }}</div>
+        <div><strong>Rol:</strong> {{ currentUser.rol }}</div>
+        <div><strong>Estado:</strong> {{ currentUser.activo ? 'Activo' : 'Inactivo' }}</div>
+      </div>
+
+      <div class="actions actions--top" *ngIf="usuario as currentUser">
+        <button type="button" class="ghost-button" (click)="toggleEstado(currentUser)" [disabled]="saving || isSelfAdminDeactivateBlocked(currentUser)">
+          {{ saving ? 'Procesando...' : currentUser.activo ? 'Desactivar usuario' : 'Activar usuario' }}
+        </button>
+      </div>
+
+      <form class="reset-form" [formGroup]="resetPasswordForm" (ngSubmit)="confirmarResetPassword()">
+        <label><span class="form-label">Nueva contrasena</span><input type="password" formControlName="password" placeholder="Nueva clave segura" /></label>
+        <label><span class="form-label">Confirmar contrasena</span><input type="password" formControlName="confirmacion" placeholder="Repite la nueva clave" /></label>
+
+        <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+        <div class="actions">
+          <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Actualizando...' : 'Guardar nueva clave' }}</button>
+        </div>
+      </form>
+    </article>
+  </ng-template>
+</section>

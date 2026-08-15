@@ -1,0 +1,35 @@
+<app-page-header eyebrow="Administracion" title="Configuracion de correo" description="Gestiona ambiente SRI y correos base usando la configuracion real expuesta por el backend actual." badge="Conectado" />
+<div class="context-banner" *ngIf="companyContext.empresaActiva() as empresaActiva"><span>Empresa activa</span><strong>{{ empresaActiva.razonSocial }}</strong><small>{{ empresaActiva.ruc }}</small></div>
+<p class="feedback feedback--loading" *ngIf="loadingEmpresas">Cargando empresas disponibles...</p>
+<p class="feedback feedback--error" *ngIf="errorEmpresas">{{ errorEmpresas }}</p>
+<section class="workspace">
+  <article class="panel config-panel">
+    <div class="panel__header"><div><h2>Empresas</h2><p>Selecciona la empresa sobre la cual deseas revisar o actualizar la configuracion.</p></div></div>
+    <div class="company-list">
+      <button *ngFor="let empresa of empresas" type="button" class="company-chip" [class.company-chip--active]="empresaSeleccionada?.id === empresa.id" (click)="seleccionarEmpresa(empresa)">{{ empresa.razonSocial }}</button>
+    </div>
+  </article>
+  <article class="panel config-panel">
+    <div class="panel__header"><div><h2>Configuracion operativa</h2><p>Edita la informacion que hoy maneja el backend: ambiente, correo de notificaciones y correo de respuesta.</p></div></div>
+    <p class="feedback feedback--loading" *ngIf="loadingConfiguracion">Cargando configuracion actual...</p>
+    <p class="feedback feedback--error" *ngIf="errorConfiguracion">{{ errorConfiguracion }}</p>
+    <form class="config-form" [formGroup]="form" (ngSubmit)="guardar()" *ngIf="empresaSeleccionada && !loadingConfiguracion">
+      <label><span class="form-label">Ambiente SRI</span><select formControlName="ambienteSri"><option [value]="1">Pruebas</option><option [value]="2">Produccion</option></select></label>
+      <label><span class="form-label">Correo de notificaciones</span><input type="email" formControlName="correoNotificaciones" placeholder="notificaciones@empresa.com" /></label>
+      <label><span class="form-label">Correo de respuesta</span><input type="email" formControlName="correoRespuesta" placeholder="respuesta@empresa.com" /></label>
+      <label><span class="form-label">Nombre del certificado</span><input type="text" formControlName="certificadoNombre" placeholder="certificado-firma.p12" /></label>
+      <label class="field-block"><span class="form-label">Archivo de certificado</span><input type="file" accept=".p12,.pfx,application/x-pkcs12" (change)="onCertificadoSeleccionado($event)" /><small>{{ certificadoArchivoNombre || 'Selecciona un archivo .p12 o .pfx para reemplazar el certificado actual.' }}</small></label>
+      <label><span class="form-label">Clave del certificado</span><input type="password" formControlName="certificadoClave" placeholder="Ingresa la clave del certificado" /></label>
+      <div class="form-meta" *ngIf="configuracion">
+        <div><span>Certificado configurado</span><strong>{{ configuracion.certificadoConfigurado ? 'Si' : 'No' }}</strong></div>
+        <div><span>Alias actual</span><strong>{{ configuracion.certificadoAlias || 'No registrado' }}</strong></div>
+        <div><span>Vigencia hasta</span><strong>{{ configuracion.certificadoVigenciaHasta || 'No registrada' }}</strong></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="secondary-button" (click)="restaurar()" [disabled]="saving || !configuracion">Restaurar</button>
+        <button type="button" class="secondary-button secondary-button--danger" (click)="limpiarCertificadoActual()" [disabled]="saving || !empresaSeleccionada || !configuracion?.certificadoConfigurado">Limpiar certificado</button>
+        <button type="submit" [disabled]="saving || form.invalid || !empresaSeleccionada">{{ saving ? 'Guardando...' : 'Guardar configuracion' }}</button>
+      </div>
+    </form>
+  </article>
+</section>

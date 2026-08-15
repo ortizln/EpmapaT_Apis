@@ -10,7 +10,6 @@
         <module name="pagosonline" />
         <module name="bandred" />
         <module name="epmapaapi" />
-        <module name="sri-files" />
       </profile>
       <profile name="Annotation profile for emails" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -18,10 +17,14 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.32/lombok-1.18.32.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.32/lombok-1.18.32.jar" />
         </processorPath>
         <module name="emails" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="sri-files" target="17" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">

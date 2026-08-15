@@ -1,0 +1,223 @@
+<article class="panel contract-panel">
+  <div class="contract-panel__header">
+    <div>
+      <h2>Recepcion de documento</h2>
+      <p>Los campos se construyen segun el contrato entregado por el backend.</p>
+    </div>
+
+    <button type="button" class="secondary-button" (click)="reiniciar.emit()" [disabled]="!contrato()">
+      Reiniciar
+    </button>
+  </div>
+
+  <form class="document-form" [formGroup]="form()" (ngSubmit)="enviar.emit()" *ngIf="contrato(); else emptyState">
+    <section class="section-card section-card--summary">
+      <header>
+        <div>
+          <h3>Resumen del formulario</h3>
+          <p>Vista rapida del contrato activo para orientar la carga del comprobante.</p>
+        </div>
+      </header>
+
+      <div class="summary-grid">
+        <article class="summary-card">
+          <span>Tipo documental</span>
+          <strong>{{ contrato()?.tipoDocumento }}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Secciones simples</span>
+          <strong>{{ seccionesSimples().length }}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Secciones multiples</span>
+          <strong>{{ seccionesMultiples().length }}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Campos totales</span>
+          <strong>{{ getTotalCampos() }}</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <header>
+        <div>
+          <h3>Control de recepcion</h3>
+          <p>Metadatos complementarios para la solicitud al endpoint de documentos.</p>
+        </div>
+      </header>
+
+      <div class="field-grid">
+        <label class="field-card">
+          <span class="form-label">External Id</span>
+          <input type="text" formControlName="externalId" placeholder="Integracion-ERP-001" />
+          <small>Identificador opcional para enlazar con otro sistema.</small>
+        </label>
+
+        <label class="field-card field-card--toggle">
+          <span class="form-label">Enviar correo</span>
+          <div class="toggle-control">
+            <input id="correoEnviar" type="checkbox" formControlName="correoEnviar" />
+            <span>Notificar al receptor luego del procesamiento.</span>
+          </div>
+        </label>
+
+        <label class="field-card field-card--full">
+          <span class="form-label">Destinatarios correo</span>
+          <input
+            type="text"
+            formControlName="correoDestinatarios"
+            placeholder="correo1@dominio.com, correo2@dominio.com"
+          />
+          <small>Separa multiples correos con coma.</small>
+        </label>
+      </div>
+    </section>
+
+    <section class="section-card" *ngFor="let seccion of seccionesSimples()">
+      <header>
+        <div>
+          <h3>{{ formatSectionTitle(seccion.nombre) }}</h3>
+          <p>{{ getSectionDescription(seccion, false) }}</p>
+        </div>
+        <span class="section-tag">{{ seccion.campos.length }} campos</span>
+      </header>
+
+      <div class="field-grid" [formGroup]="getSimpleSectionGroup(seccion.nombre)">
+        <label class="field-card" *ngFor="let campo of seccion.campos">
+          <div class="field-card__top">
+            <span class="form-label">{{ formatLabel(campo.nombre) }}</span>
+            <app-status-chip [label]="campo.requerido ? 'ACTIVO' : 'OPCIONAL'" />
+          </div>
+
+          <ng-container [ngSwitch]="getFieldConfig(campo).input">
+            <select *ngSwitchCase="'select'" [formControlName]="campo.nombre">
+              <option value="">Selecciona una opcion</option>
+              <option *ngFor="let option of getFieldConfig(campo).options" [value]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+
+            <textarea
+              *ngSwitchCase="'textarea'"
+              [formControlName]="campo.nombre"
+              [rows]="getFieldConfig(campo).rows || 3"
+              [placeholder]="campo.ejemplo || campo.descripcion || formatLabel(campo.nombre)"
+            ></textarea>
+
+            <input
+              *ngSwitchDefault
+              [type]="getFieldConfig(campo).input"
+              [formControlName]="campo.nombre"
+              [attr.min]="getFieldConfig(campo).min ?? null"
+              [attr.max]="getFieldConfig(campo).max ?? null"
+              [attr.step]="getFieldConfig(campo).step ?? null"
+              [placeholder]="campo.ejemplo || campo.descripcion || formatLabel(campo.nombre)"
+            />
+          </ng-container>
+
+          <small>{{ campo.descripcion || 'Campo generado desde el contrato.' }}</small>
+          <small class="field-error" *ngIf="showFieldError(getSimpleSectionGroup(seccion.nombre), campo.nombre)">
+            {{ getFieldErrorMessage(getSimpleSectionGroup(seccion.nombre), campo) }}
+          </small>
+        </label>
+      </div>
+    </section>
+
+    <section class="section-card" *ngFor="let seccion of seccionesMultiples()">
+      <header>
+        <div>
+          <h3>{{ formatSectionTitle(seccion.nombre) }}</h3>
+          <p>{{ getSectionDescription(seccion, true) }}</p>
+        </div>
+        <div class="section-actions">
+          <span class="section-tag">{{ getMultipleSectionArray(seccion.nombre).length }} items</span>
+          <button type="button" class="secondary-button" (click)="agregarItem.emit(seccion.nombre)">
+            Agregar item
+          </button>
+        </div>
+      </header>
+
+      <div class="repeat-list" [formArrayName]="seccion.nombre">
+        <div
+          class="repeat-item"
+          *ngFor="let itemGroup of getMultipleSectionArray(seccion.nombre).controls; let index = index"
+          [formGroupName]="index"
+        >
+          <div class="repeat-item__header">
+            <strong>Item {{ index + 1 }}</strong>
+            <button
+              type="button"
+              class="link-button"
+              (click)="quitarItem.emit({ sectionName: seccion.nombre, index })"
+              [disabled]="getMultipleSectionArray(seccion.nombre).length === 1"
+            >
+              Quitar
+            </button>
+          </div>
+
+          <div class="field-grid">
+            <label class="field-card" *ngFor="let campo of seccion.campos">
+              <div class="field-card__top">
+                <span class="form-label">{{ formatLabel(campo.nombre) }}</span>
+                <app-status-chip [label]="campo.requerido ? 'ACTIVO' : 'OPCIONAL'" />
+              </div>
+
+              <ng-container [ngSwitch]="getFieldConfig(campo).input">
+                <select *ngSwitchCase="'select'" [formControlName]="campo.nombre">
+                  <option value="">Selecciona una opcion</option>
+                  <option *ngFor="let option of getFieldConfig(campo).options" [value]="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+
+                <textarea
+                  *ngSwitchCase="'textarea'"
+                  [formControlName]="campo.nombre"
+                  [rows]="getFieldConfig(campo).rows || 3"
+                  [placeholder]="campo.ejemplo || campo.descripcion || formatLabel(campo.nombre)"
+                ></textarea>
+
+                <input
+                  *ngSwitchDefault
+                  [type]="getFieldConfig(campo).input"
+                  [formControlName]="campo.nombre"
+                  [attr.min]="getFieldConfig(campo).min ?? null"
+                  [attr.max]="getFieldConfig(campo).max ?? null"
+                  [attr.step]="getFieldConfig(campo).step ?? null"
+                  [placeholder]="campo.ejemplo || campo.descripcion || formatLabel(campo.nombre)"
+                />
+              </ng-container>
+
+              <small>{{ campo.descripcion || 'Campo repetible generado desde el contrato.' }}</small>
+              <small class="field-error" *ngIf="showFieldError(asDynamicGroup(itemGroup), campo.nombre)">
+                {{ getFieldErrorMessage(asDynamicGroup(itemGroup), campo) }}
+              </small>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="submit-row">
+      <div *ngIf="recepcionResponse()" class="response-card">
+        <strong>{{ recepcionResponse()?.estado }}</strong>
+        <p>{{ recepcionResponse()?.mensaje }}</p>
+        <small>ID: {{ recepcionResponse()?.id }}</small>
+      </div>
+
+      <div *ngIf="errorRecepcion()" class="feedback feedback--error">{{ errorRecepcion() }}</div>
+
+      <button type="submit" class="primary-button" [disabled]="submitting() || loadingContrato()">
+        {{ submitting() ? 'Enviando...' : 'Enviar documento' }}
+      </button>
+    </div>
+  </form>
+
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <strong>Sin contrato cargado</strong>
+      <p>Selecciona un tipo documental para obtener la estructura desde el backend.</p>
+    </div>
+  </ng-template>
+</article>

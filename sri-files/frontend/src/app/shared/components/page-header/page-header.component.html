@@ -1,0 +1,12 @@
+<header class="page-header">
+  <div class="page-header__content">
+    <p>{{ eyebrow() }}</p>
+    <h1>{{ title() }}</h1>
+    <small *ngIf="description()">{{ description() }}</small>
+  </div>
+
+  <div class="page-header__aside">
+    <ng-content></ng-content>
+    <span *ngIf="badge()" class="badge">{{ badge() }}</span>
+  </div>
+</header>

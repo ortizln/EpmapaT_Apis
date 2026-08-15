@@ -1,0 +1,23 @@
+<section class="login-shell">
+  <div class="login-card">
+    <span class="eyebrow">SRI Files</span>
+    <h1>Ingreso a plataforma</h1>
+    <p>Accede al panel de administracion documental y flujo de comprobantes electronicos.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Usuario
+        <input type="text" formControlName="username" placeholder="Ingresa tu usuario" />
+      </label>
+
+      <label>
+        Clave
+        <input type="password" formControlName="password" placeholder="Ingresa tu clave" />
+      </label>
+
+      <button type="submit" [disabled]="submitting">
+        {{ submitting ? 'Ingresando...' : 'Entrar' }}
+      </button>
+    </form>
+  </div>
+</section>

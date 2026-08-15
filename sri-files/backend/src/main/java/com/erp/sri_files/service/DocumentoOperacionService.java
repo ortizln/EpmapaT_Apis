@@ -1,0 +1,254 @@
+package com.erp.sri_files.service;
+
+import com.erp.sri_files.domain.documento.DocumentoArchivoTipo;
+import com.erp.sri_files.domain.documento.DocumentoElectronico;
+import com.erp.sri_files.domain.documento.DocumentoEstado;
+import com.erp.sri_files.dto.response.DocumentoAutorizacionConsultaResponse;
+import com.erp.sri_files.dto.response.DocumentoAutorizacionManualResponse;
+import com.erp.sri_files.dto.response.DocumentoCorreoReenvioResponse;
+import com.erp.sri_files.exceptions.DocumentoRecepcionException;
+import com.erp.sri_files.repositories.documento.DocumentoElectronicoRepository;
+import com.erp.sri_files.sri.port.SriAutorizacionPort;
+import com.erp.sri_files.utils.SriAutorizacionAdapter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import ec.gob.sri.ws.autorizacion.RespuestaComprobante;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.UUID;
+
+@Service
+public class DocumentoOperacionService {
+
+    private static final Set<DocumentoEstado> ESTADOS_CONSULTA_AUTORIZACION = Set.of(
+            DocumentoEstado.RECIBIDO_SRI,
+            DocumentoEstado.PENDIENTE_AUTORIZACION,
+            DocumentoEstado.ERROR_AUTORIZACION,
+            DocumentoEstado.NO_AUTORIZADO,
+            DocumentoEstado.AUTORIZADO,
+            DocumentoEstado.RIDE_GENERADO,
+            DocumentoEstado.CORREO_PENDIENTE,
+            DocumentoEstado.CORREO_ENVIADO,
+            DocumentoEstado.FINALIZADO
+    );
+
+    private static final Set<DocumentoEstado> ESTADOS_REENVIO_CORREO = Set.of(
+            DocumentoEstado.AUTORIZADO,
+            DocumentoEstado.RIDE_GENERADO,
+            DocumentoEstado.CORREO_PENDIENTE,
+            DocumentoEstado.CORREO_ENVIADO,
+            DocumentoEstado.ERROR_CORREO,
+            DocumentoEstado.FINALIZADO
+    );
+
+    private final DocumentoElectronicoRepository documentoRepository;
+    private final SriAutorizacionPort sriAutorizacionPort;
+    private final ArchivoDocumentoService archivoDocumentoService;
+    private final EstadoDocumentoService estadoDocumentoService;
+    private final DocumentoWorkflowService documentoWorkflowService;
+    private final ObjectMapper objectMapper;
+
+    public DocumentoOperacionService(
+            DocumentoElectronicoRepository documentoRepository,
+            SriAutorizacionPort sriAutorizacionPort,
+            ArchivoDocumentoService archivoDocumentoService,
+            EstadoDocumentoService estadoDocumentoService,
+            DocumentoWorkflowService documentoWorkflowService,
+            ObjectMapper objectMapper
+    ) {
+        this.documentoRepository = documentoRepository;
+        this.sriAutorizacionPort = sriAutorizacionPort;
+        this.archivoDocumentoService = archivoDocumentoService;
+        this.estadoDocumentoService = estadoDocumentoService;
+        this.documentoWorkflowService = documentoWorkflowService;
+        this.objectMapper = objectMapper;
+    }
+
+    public String describirOperacionDisponible() {
+        return "Operaciones administrativas del documento habilitadas";
+    }
+
+    public DocumentoAutorizacionConsultaResponse consultarAutorizacionPorClave(String claveAcceso) {
+        return consultarAutorizacionPorClave(claveAcceso, false);
+    }
+
+    public DocumentoAutorizacionConsultaResponse consultarAutorizacionPorClave(String claveAcceso, boolean incluirXml) {
+        if (claveAcceso == null || claveAcceso.isBlank()) {
+            throw new DocumentoRecepcionException("La clave de acceso es obligatoria para consultar al SRI");
+        }
+
+        try {
+            RespuestaComprobante respuesta = sriAutorizacionPort.consultar(claveAcceso.trim());
+            var autorizacion = SriAutorizacionAdapter.fromRespuesta(respuesta).orElse(null);
+
+            if (autorizacion == null) {
+                return new DocumentoAutorizacionConsultaResponse(
+                        claveAcceso.trim(),
+                        "SIN_AUTORIZACION_EN_SRI",
+                        false,
+                        null,
+                        null,
+                        "Aun no hay autorizaciones disponibles para la clave.",
+                        false,
+                        null
+                );
+            }
+
+            String estado = autorizacion.autorizado() ? "AUTORIZADO" : "NO_AUTORIZADO";
+            String xmlAutorizado = null;
+            if (incluirXml && autorizacion.xmlAutorizado() != null) {
+                xmlAutorizado = new String(autorizacion.xmlAutorizado(), StandardCharsets.UTF_8);
+            }
+
+            return new DocumentoAutorizacionConsultaResponse(
+                    claveAcceso.trim(),
+                    estado,
+                    autorizacion.autorizado(),
+                    autorizacion.numeroAutorizacion(),
+                    autorizacion.fechaAutorizacion() == null ? null : autorizacion.fechaAutorizacion().toString(),
+                    autorizacion.mensajesConcatenados(),
+                    true,
+                    xmlAutorizado
+            );
+        } catch (DocumentoRecepcionException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new DocumentoRecepcionException("No fue posible consultar la autorizacion en el SRI: " + ex.getMessage());
+        }
+    }
+
+    @Transactional
+    public DocumentoAutorizacionManualResponse consultarAutorizacion(UUID uuid) {
+        DocumentoElectronico documento = documentoRepository.findByUuid(uuid)
+                .orElseThrow(() -> new DocumentoRecepcionException("No existe documento con uuid " + uuid));
+
+        if (!ESTADOS_CONSULTA_AUTORIZACION.contains(documento.getEstadoActual())) {
+            throw new DocumentoRecepcionException(
+                    "El estado " + documento.getEstadoActual() + " no es compatible con la consulta manual de autorizacion"
+            );
+        }
+
+        if (documento.getClaveAcceso() == null || documento.getClaveAcceso().isBlank()) {
+            throw new DocumentoRecepcionException("El documento no tiene clave de acceso registrada para consultar al SRI");
+        }
+
+        try {
+            RespuestaComprobante respuesta = sriAutorizacionPort.consultar(documento, documento.getClaveAcceso());
+            archivoDocumentoService.guardarTexto(documento, DocumentoArchivoTipo.RESPUESTA_SRI, objectMapper.writeValueAsString(respuesta));
+
+            var autorizacion = SriAutorizacionAdapter.fromRespuesta(respuesta).orElse(null);
+            if (autorizacion == null) {
+                documento.setMensajeSri("Sin respuesta util de autorizacion");
+                documentoRepository.save(documento);
+                return new DocumentoAutorizacionManualResponse(
+                        documento.getUuid().toString(),
+                        documento.getClaveAcceso(),
+                        documento.getEstadoActual().name(),
+                        false,
+                        documento.getNumeroAutorizacion(),
+                        documento.getFechaAutorizacion() == null ? null : documento.getFechaAutorizacion().toString(),
+                        "Sin respuesta util de autorizacion",
+                        false
+                );
+            }
+
+            boolean actualizado = false;
+            documento.setMensajeSri(autorizacion.mensajesConcatenados());
+
+            if (autorizacion.autorizado()) {
+                documento.setNumeroAutorizacion(autorizacion.numeroAutorizacion());
+                documento.setFechaAutorizacion(autorizacion.fechaAutorizacion());
+                if (autorizacion.xmlAutorizado() != null) {
+                    archivoDocumentoService.guardarBytes(documento, DocumentoArchivoTipo.XML_AUTORIZADO, autorizacion.xmlAutorizado());
+                }
+
+                if (documento.getEstadoActual() == DocumentoEstado.RECIBIDO_SRI) {
+                    estadoDocumentoService.cambiar(documento, DocumentoEstado.PENDIENTE_AUTORIZACION, "Consulta manual de autorizacion iniciada");
+                    actualizado = true;
+                }
+
+                if (documento.getEstadoActual() == DocumentoEstado.PENDIENTE_AUTORIZACION
+                        || documento.getEstadoActual() == DocumentoEstado.ERROR_AUTORIZACION
+                        || documento.getEstadoActual() == DocumentoEstado.NO_AUTORIZADO) {
+                    estadoDocumentoService.cambiar(documento, DocumentoEstado.AUTORIZADO, "Documento autorizado por SRI en consulta manual");
+                    actualizado = true;
+                } else {
+                    documentoRepository.save(documento);
+                }
+            } else {
+                if (documento.getEstadoActual() == DocumentoEstado.RECIBIDO_SRI) {
+                    estadoDocumentoService.cambiar(documento, DocumentoEstado.PENDIENTE_AUTORIZACION, "Consulta manual de autorizacion iniciada");
+                    actualizado = true;
+                }
+
+                if (documento.getEstadoActual() == DocumentoEstado.PENDIENTE_AUTORIZACION
+                        || documento.getEstadoActual() == DocumentoEstado.ERROR_AUTORIZACION) {
+                    estadoDocumentoService.cambiar(documento, DocumentoEstado.NO_AUTORIZADO, "Documento no autorizado por SRI en consulta manual");
+                    actualizado = true;
+                } else {
+                    documentoRepository.save(documento);
+                }
+            }
+
+            return new DocumentoAutorizacionManualResponse(
+                    documento.getUuid().toString(),
+                    documento.getClaveAcceso(),
+                    documento.getEstadoActual().name(),
+                    autorizacion.autorizado(),
+                    documento.getNumeroAutorizacion(),
+                    documento.getFechaAutorizacion() == null ? null : documento.getFechaAutorizacion().toString(),
+                    documento.getMensajeSri(),
+                    actualizado
+            );
+        } catch (DocumentoRecepcionException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            documento.setMensajeSri("Error consultando autorizacion SRI: " + ex.getMessage());
+            if (documento.getEstadoActual() == DocumentoEstado.PENDIENTE_AUTORIZACION) {
+                estadoDocumentoService.cambiar(documento, DocumentoEstado.ERROR_AUTORIZACION, "Consulta manual de autorizacion con error");
+            } else {
+                documentoRepository.save(documento);
+            }
+            throw new DocumentoRecepcionException("No fue posible consultar la autorizacion en el SRI: " + ex.getMessage());
+        }
+    }
+
+    @Transactional
+    public DocumentoCorreoReenvioResponse reenviarCorreo(UUID uuid) {
+        DocumentoElectronico documento = documentoRepository.findByUuid(uuid)
+                .orElseThrow(() -> new DocumentoRecepcionException("No existe documento con uuid " + uuid));
+
+        if (!ESTADOS_REENVIO_CORREO.contains(documento.getEstadoActual())) {
+            throw new DocumentoRecepcionException(
+                    "El estado " + documento.getEstadoActual() + " no es compatible con el reenvio de correo"
+            );
+        }
+
+        if (documento.getEmailReceptor() == null || documento.getEmailReceptor().isBlank()) {
+            throw new DocumentoRecepcionException("El documento no tiene correo receptor configurado para reenviar");
+        }
+
+        try {
+            if (documento.getEstadoActual() == DocumentoEstado.AUTORIZADO || documento.getEstadoActual() == DocumentoEstado.RIDE_GENERADO) {
+                estadoDocumentoService.cambiar(documento, DocumentoEstado.CORREO_PENDIENTE, "Reenvio manual de correo solicitado");
+            }
+
+            documentoWorkflowService.reenviarCorreo(documento);
+            estadoDocumentoService.cambiar(documento, DocumentoEstado.CORREO_ENVIADO, "Correo reenviado manualmente");
+
+            return new DocumentoCorreoReenvioResponse(
+                    documento.getUuid().toString(),
+                    documento.getEstadoActual().name(),
+                    documento.getEmailReceptor(),
+                    "Correo reenviado correctamente"
+            );
+        } catch (DocumentoRecepcionException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new DocumentoRecepcionException("No fue posible reenviar el correo del documento: " + ex.getMessage());
+        }
+    }
+}

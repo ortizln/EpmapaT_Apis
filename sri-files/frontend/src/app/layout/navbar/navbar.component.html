@@ -1,0 +1,43 @@
+<header class="navbar">
+  <div class="navbar__start">
+    <button
+      type="button"
+      class="menu-toggle"
+      aria-label="Alternar menu lateral"
+      (click)="ui.toggleSidebar()"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <div>
+      <p class="label">Operacion</p>
+      <h2>Plataforma SRI Files</h2>
+    </div>
+  </div>
+
+  <div class="session">
+    <div class="company-switcher" *ngIf="companyContext.empresas().length">
+      <label for="empresaActiva">Empresa activa</label>
+      <select
+        id="empresaActiva"
+        [value]="companyContext.empresaActiva()?.id || ''"
+        (change)="seleccionarEmpresa($event)"
+      >
+        <option *ngFor="let empresa of companyContext.empresas()" [value]="empresa.id">
+          {{ empresa.razonSocial }}
+        </option>
+      </select>
+    </div>
+
+    <div class="session__user">
+      <strong>{{ authStore.usuario()?.nombre || 'Invitado' }}</strong>
+      <span>
+        {{ companyContext.empresaActiva()?.ruc || authStore.usuario()?.correo || 'Sin sesion activa' }}
+      </span>
+    </div>
+
+    <button type="button" class="session__logout" (click)="logout()">Salir</button>
+  </div>
+</header>

@@ -1,0 +1,62 @@
+<section class="table-card">
+  <div class="table-card__header">
+    <div>
+      <h2>Seguimiento por UUID</h2>
+      <p>Consulta el detalle registrado y el estado operativo del documento en backend.</p>
+    </div>
+    <span class="table-card__eyebrow">Consulta directa</span>
+  </div>
+
+  <div class="tracking-panel">
+    <form class="tracking-form" [formGroup]="form()" (ngSubmit)="consultar.emit()">
+      <label class="field-card field-card--full">
+        <span class="form-label">UUID del documento</span>
+        <input type="text" formControlName="uuid" placeholder="cf8f8a1e-0000-0000-0000-000000000000" />
+        <small class="field-error" *ngIf="form().controls['uuid'].invalid && form().controls['uuid'].touched">
+          Ingresa un UUID para consultar el seguimiento.
+        </small>
+      </label>
+
+      <button type="submit" class="primary-button" [disabled]="loading()">
+        {{ loading() ? 'Consultando...' : 'Consultar seguimiento' }}
+      </button>
+    </form>
+
+    <div *ngIf="error()" class="feedback feedback--error">{{ error() }}</div>
+
+    <div class="tracking-grid" *ngIf="detalle() || estado()">
+      <article class="tracking-card" *ngIf="detalle() as detalleDocumento">
+        <h3>Detalle del documento</h3>
+        <dl>
+          <div><dt>ID</dt><dd>{{ detalleDocumento.id }}</dd></div>
+          <div><dt>Tipo</dt><dd>{{ detalleDocumento.tipoDocumento }}</dd></div>
+          <div><dt>Estado</dt><dd>{{ detalleDocumento.estado }}</dd></div>
+          <div><dt>External ID</dt><dd>{{ detalleDocumento.externalId || 'N/D' }}</dd></div>
+          <div><dt>Numero</dt><dd>{{ detalleDocumento.numeroDocumento || 'N/D' }}</dd></div>
+          <div><dt>Clave acceso</dt><dd>{{ detalleDocumento.claveAcceso || 'N/D' }}</dd></div>
+          <div><dt>Identificacion receptor</dt><dd>{{ detalleDocumento.identificacionReceptor || 'N/D' }}</dd></div>
+          <div><dt>Razon social</dt><dd>{{ detalleDocumento.razonSocialReceptor || 'N/D' }}</dd></div>
+          <div><dt>Email</dt><dd>{{ detalleDocumento.emailReceptor || 'N/D' }}</dd></div>
+          <div><dt>Fecha emision</dt><dd>{{ detalleDocumento.fechaEmision || 'N/D' }}</dd></div>
+          <div><dt>Fecha recepcion</dt><dd>{{ detalleDocumento.fechaRecepcion || 'N/D' }}</dd></div>
+        </dl>
+      </article>
+
+      <article class="tracking-card" *ngIf="estado() as estadoDocumento">
+        <h3>Estado operativo</h3>
+        <div class="tracking-status">
+          <app-status-chip [label]="estadoDocumento.estado" />
+          <span class="tracking-flag" [class.tracking-flag--alert]="estadoDocumento.requiereIntervencion">
+            {{ estadoDocumento.requiereIntervencion ? 'Requiere intervencion' : 'Sin intervencion pendiente' }}
+          </span>
+        </div>
+
+        <dl>
+          <div><dt>ID</dt><dd>{{ estadoDocumento.id }}</dd></div>
+          <div><dt>Estado</dt><dd>{{ estadoDocumento.estado }}</dd></div>
+          <div><dt>Intervencion</dt><dd>{{ estadoDocumento.requiereIntervencion ? 'Si' : 'No' }}</dd></div>
+        </dl>
+      </article>
+    </div>
+  </div>
+</section>

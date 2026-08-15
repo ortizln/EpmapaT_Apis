@@ -1,0 +1,15 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.38rem 0.7rem;
+  border-radius: 999px;
+  color: #8a4b00;
+  background: #fff3cd;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.chip--ok {
+  color: #17653a;
+  background: #d1f3df;
+}

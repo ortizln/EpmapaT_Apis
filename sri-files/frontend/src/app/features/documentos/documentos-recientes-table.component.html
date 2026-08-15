@@ -1,0 +1,113 @@
+<section class="table-card">
+  <div class="table-card__header">
+    <div>
+      <h2>Bandeja de documentos</h2>
+      <p>Listado conectado al backend con filtros y paginacion.</p>
+    </div>
+    <span class="table-card__count">{{ totalItems() }} registros</span>
+  </div>
+
+  <div class="filters">
+    <label>
+      <span class="form-label">Tipo</span>
+      <select [value]="tipoDocumento()" (change)="onTipoDocumentoChange($event)">
+        <option value="">Todos</option>
+        <option *ngFor="let tipo of tiposDocumento()" [value]="tipo">{{ tipo }}</option>
+      </select>
+    </label>
+
+    <label>
+      <span class="form-label">Estado</span>
+      <input type="text" [value]="estado()" placeholder="AUTORIZADO" (input)="onEstadoInput($event)" />
+    </label>
+
+    <label class="filters__search">
+      <span class="form-label">Busqueda</span>
+      <input
+        type="text"
+        [value]="busqueda()"
+        placeholder="Numero, cliente o identificacion"
+        (input)="onBusquedaInput($event)"
+      />
+    </label>
+  </div>
+
+  <div class="feedback feedback--loading" *ngIf="loading()">Cargando bandeja...</div>
+  <div class="feedback feedback--error" *ngIf="error()">{{ error() }}</div>
+
+  <div class="table-wrapper" *ngIf="documentos().length > 0; else emptyState">
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Comprobante</th>
+          <th>Cliente</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let documento of documentos(); let index = index"
+          class="table-row-action"
+          [class.table-row-action--even]="index % 2 === 1"
+          tabindex="0"
+          (click)="verDetalle.emit(documento.id)"
+          (keydown.enter)="verDetalle.emit(documento.id)"
+        >
+          <td>{{ documento.tipoDocumento }}</td>
+          <td>{{ documento.numeroComprobante || 'N/D' }}</td>
+          <td>{{ documento.razonSocial }}</td>
+          <td>{{ documento.fechaEmision }}</td>
+          <td><app-status-chip [label]="documento.estado" /></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <strong>Sin resultados</strong>
+      <p>No se encontraron documentos con los filtros aplicados.</p>
+    </div>
+  </ng-template>
+
+  <div class="pagination">
+    <div class="pagination__meta">
+      <span>Pagina {{ currentPageLabel() }} de {{ totalPages() || 1 }}</span>
+      <span>Mostrando {{ rangeStart() }} - {{ rangeEnd() }} de {{ totalItems() }} registros</span>
+    </div>
+
+    <div class="pagination__size">
+      <span class="form-label">Filas por pagina</span>
+      <select [value]="size()" (change)="onSizeChange($event)">
+        <option *ngFor="let option of sizeOptions" [value]="option">{{ option }}</option>
+      </select>
+    </div>
+
+    <div class="pagination__actions">
+      <button type="button" class="secondary-button" (click)="pageChange.emit(page() - 1)" [disabled]="page() === 0">
+        Anterior
+      </button>
+
+      <button
+        *ngFor="let pageNumber of visiblePages()"
+        type="button"
+        class="page-button"
+        [class.page-button--active]="pageNumber === page()"
+        (click)="pageChange.emit(pageNumber)"
+      >
+        {{ pageNumber + 1 }}
+      </button>
+
+      <button
+        type="button"
+        class="secondary-button"
+        (click)="pageChange.emit(page() + 1)"
+        [disabled]="page() + 1 >= totalPages()"
+      >
+        Siguiente
+      </button>
+    </div>
+  </div>
+</section>

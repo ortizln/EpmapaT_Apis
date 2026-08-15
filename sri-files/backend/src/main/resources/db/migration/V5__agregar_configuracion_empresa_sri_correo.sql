@@ -1,0 +1,7 @@
+ALTER TABLE empresa
+    ADD COLUMN IF NOT EXISTS sri_ambiente SMALLINT NOT NULL DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS correo_notificaciones VARCHAR(320),
+    ADD COLUMN IF NOT EXISTS correo_respuesta VARCHAR(320),
+    ADD COLUMN IF NOT EXISTS certificado_nombre VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS certificado_pkcs12 BYTEA,
+    ADD COLUMN IF NOT EXISTS certificado_clave VARCHAR(500);

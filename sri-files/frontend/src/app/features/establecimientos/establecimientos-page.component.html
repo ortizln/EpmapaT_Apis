@@ -1,0 +1,123 @@
+<app-page-header
+  *ngIf="!embedded()"
+  eyebrow="Configuracion"
+  title="Establecimientos"
+  description="Organizacion de sedes emisoras por empresa para sostener la operacion documental."
+  badge="Solo ADMIN"
+/>
+
+<section class="workspace">
+  <article class="panel form-panel" *ngIf="!embedded()">
+    <div class="panel__header">
+      <div>
+        <h3>{{ editingId ? 'Editar establecimiento' : 'Nuevo establecimiento' }}</h3>
+        <p>Relacionamos establecimientos con la empresa emisora seleccionada.</p>
+      </div>
+    </div>
+
+    <form class="establishment-form" [formGroup]="form" (ngSubmit)="guardar()">
+      <label>
+        <span class="form-label">Empresa</span>
+        <select formControlName="empresaId" (change)="onEmpresaChange()">
+          <option value="">Selecciona una empresa</option>
+          <option *ngFor="let empresa of empresas" [value]="empresa.id">{{ empresa.razonSocial }}</option>
+        </select>
+      </label>
+
+      <label>
+        <span class="form-label">Codigo</span>
+        <input type="text" formControlName="codigo" maxlength="3" />
+      </label>
+
+      <label>
+        <span class="form-label">Nombre</span>
+        <input type="text" formControlName="nombre" />
+      </label>
+
+      <label>
+        <span class="form-label">Direccion</span>
+        <input type="text" formControlName="direccion" />
+      </label>
+
+      <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
+
+      <div class="actions">
+        <button type="submit" class="primary-button" [disabled]="saving">
+          {{ saving ? 'Guardando...' : editingId ? 'Actualizar establecimiento' : 'Crear establecimiento' }}
+        </button>
+        <button type="button" class="ghost-button" (click)="resetForm()" [disabled]="saving">
+          Limpiar
+        </button>
+      </div>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel__header">
+      <div>
+        <h3>Establecimientos registrados</h3>
+        <p>Filtrados por la empresa que selecciones en el formulario.</p>
+      </div>
+      <div class="header-actions">
+        <span class="panel-badge">{{ establecimientos.length }} establecimientos</span>
+        <button *ngIf="embedded()" type="button" class="primary-button" (click)="irANuevoEstablecimiento()">
+          Nuevo establecimiento
+        </button>
+      </div>
+    </div>
+
+    <p class="feedback feedback--loading" *ngIf="loadingEmpresas">Cargando empresas...</p>
+    <p class="feedback feedback--loading" *ngIf="loading">Cargando establecimientos...</p>
+    <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+    <div class="table-shell" *ngIf="establecimientos.length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Nombre</th>
+            <th>Direccion</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let establecimiento of establecimientos">
+            <td>{{ establecimiento.codigo }}</td>
+            <td>{{ establecimiento.nombre || 'N/D' }}</td>
+            <td>{{ establecimiento.direccion || 'N/D' }}</td>
+            <td>
+              <span class="status-pill" [class.status-pill--inactive]="!establecimiento.activo">
+                {{ establecimiento.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <button
+                type="button"
+                class="ghost-button"
+                (click)="embedded() ? irAEditarEstablecimiento(establecimiento) : editar(establecimiento)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="ghost-button"
+                (click)="cambiarEstado(establecimiento)"
+                [disabled]="savingStateId === establecimiento.id"
+              >
+                {{ savingStateId === establecimiento.id ? 'Procesando...' : establecimiento.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>No hay establecimientos para esta empresa</strong>
+    <p>Selecciona una empresa y crea su estructura operativa inicial.</p>
+  </div>
+</ng-template>

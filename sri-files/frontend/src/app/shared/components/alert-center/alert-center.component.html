@@ -1,0 +1,12 @@
+<div class="alert-center" *ngIf="alerts.alerts().length">
+  <article class="alert" *ngFor="let alert of alerts.alerts()" [class]="'alert alert--' + alert.tone">
+    <div class="alert__content">
+      <strong>{{ alert.title }}</strong>
+      <span *ngIf="alert.message">{{ alert.message }}</span>
+    </div>
+
+    <button type="button" class="alert__close" (click)="alerts.dismiss(alert.id)" aria-label="Cerrar alerta">
+      x
+    </button>
+  </article>
+</div>

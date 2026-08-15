@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASS:}}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:9090}
+
+app:
+  reports:
+    path: ${APP_REPORTS_PATH:/home/epmapaadmin/reportsEpmapat}
+  backend:
+    base-url: ${ERP_BACKEND_BASE_URL:http://192.168.0.165:9080}
+  email-ms:
+    base-url: ${EMAIL_MS_BASE_URL:http://localhost:9099}
+  mail:
+    from: ${APP_MAIL_FROM:facturacion@epmapatulcan.gob.ec}
+    username: ${APP_MAIL_USERNAME:facturacion}
+    display-name: ${APP_MAIL_DISPLAY_NAME:EPMAPA-T}
+    reply-to: ${APP_MAIL_REPLY_TO:facturacion@epmapatulcan.gob.ec}
+
+sri:
+  ambiente: ${SRI_AMBIENTE:2}
+  scheduler:
+    envio-facturas:
+      cron: ${SRI_SCHEDULER_ENVIO_FACTURAS_CRON:0 */1 * * * *}
+    recuperacion-xml:
+      cron: ${SRI_SCHEDULER_RECUPERACION_XML_CRON:30 */3 * * * *}
+
+logging:
+  level:
+    root: INFO
+    com.erp.sri_files: INFO
+    org.springframework.jdbc: INFO
+    com.zaxxer.hikari: INFO
+
+sri-files:
+  processing:
+    batch-size: ${SRI_FILES_PROCESSING_BATCH_SIZE:20}
+    max-retries: ${SRI_FILES_PROCESSING_MAX_RETRIES:5}
+    recibidos-cron: ${SRI_FILES_PROCESSING_RECIBIDOS_CRON:0 */1 * * * *}
+  storage:
+    root: ${SRI_FILES_STORAGE_ROOT:/data/sri-files}
+  sri:
+    default-environment: ${SRI_FILES_SRI_DEFAULT_ENVIRONMENT:2}

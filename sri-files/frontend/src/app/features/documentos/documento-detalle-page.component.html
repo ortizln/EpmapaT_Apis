@@ -1,0 +1,418 @@
+<app-page-header
+  eyebrow="Operacion"
+  title="Detalle del documento"
+  [description]="headerDescription()"
+  badge="Trazabilidad"
+>
+  <button type="button" class="secondary-button" routerLink="/documentos">Volver a la bandeja</button>
+</app-page-header>
+
+<section class="detail-shell">
+  <div class="feedback feedback--loading" *ngIf="loading()">Cargando detalle del documento...</div>
+  <div class="feedback feedback--error" *ngIf="error()">{{ error() }}</div>
+
+  <ng-container *ngIf="!loading() && documento() as detalleDocumento">
+    <section class="summary-grid">
+      <article class="panel overview-card">
+        <div class="overview-card__header">
+          <div>
+            <span class="eyebrow">Documento</span>
+            <h2>{{ detalleDocumento.numeroDocumento || 'Sin numero registrado' }}</h2>
+            <p>{{ detalleDocumento.tipoDocumento }} registrado en plataforma</p>
+          </div>
+          <app-status-chip [label]="estadoActual()" />
+        </div>
+
+        <div class="overview-card__meta">
+          <div>
+            <span>UUID</span>
+            <strong>{{ detalleDocumento.id }}</strong>
+          </div>
+          <div>
+            <span>Clave de acceso</span>
+            <strong>{{ detalleDocumento.claveAcceso || 'Pendiente' }}</strong>
+          </div>
+          <div>
+            <span>External ID</span>
+            <strong>{{ detalleDocumento.externalId || 'No informado' }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel state-card" *ngIf="estado() as estadoDocumento">
+        <div class="state-card__header">
+          <div>
+            <span class="eyebrow">Operacion</span>
+            <h3>Estado actual</h3>
+          </div>
+          <span class="state-flag" [class.state-flag--alert]="estadoDocumento.requiereIntervencion">
+            {{ estadoDocumento.requiereIntervencion ? 'Requiere intervencion' : 'Operacion estable' }}
+          </span>
+        </div>
+
+        <div class="state-card__timeline">
+          <article
+            *ngFor="let paso of timeline()"
+            class="timeline-item"
+            [class.timeline-item--active]="paso.resaltado"
+          >
+            <strong>{{ paso.titulo }}</strong>
+            <p>{{ paso.descripcion }}</p>
+            <span>{{ paso.valor }}</span>
+          </article>
+        </div>
+      </article>
+    </section>
+
+    <section class="context-banner" *ngIf="documento() as currentDocumento">
+      <div>
+        <span>Tipo documental</span>
+        <strong>{{ currentDocumento.tipoDocumento }}</strong>
+      </div>
+      <div>
+        <span>Receptor</span>
+        <strong>{{ currentDocumento.razonSocialReceptor || 'No registrado' }}</strong>
+      </div>
+      <div>
+        <span>Correo</span>
+        <strong>{{ currentDocumento.emailReceptor || 'No registrado' }}</strong>
+      </div>
+    </section>
+
+    <section class="panel action-card">
+      <div class="action-card__header">
+        <div>
+          <span class="eyebrow">SRI</span>
+          <h3>Consulta manual de autorizacion</h3>
+          <p>Accion operativa conectada al endpoint real del backend para validar el estado actual del documento.</p>
+        </div>
+
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="consultarAutorizacionManual()"
+          [disabled]="consultandoAutorizacion() || !detalleDocumento.id"
+        >
+          {{ consultandoAutorizacion() ? 'Consultando...' : 'Consultar autorizacion' }}
+        </button>
+      </div>
+
+      <div class="feedback feedback--error" *ngIf="autorizacionError()">{{ autorizacionError() }}</div>
+
+      <div class="authorization-grid" *ngIf="autorizacion() as resultado">
+        <div><span>Estado SRI</span><strong>{{ resultado.estado }}</strong></div>
+        <div><span>Autorizado</span><strong>{{ resultado.autorizado ? 'Si' : 'No' }}</strong></div>
+        <div><span>Actualizado</span><strong>{{ resultado.actualizado ? 'Si' : 'No' }}</strong></div>
+        <div><span>Clave acceso</span><strong>{{ resultado.claveAcceso || 'No disponible' }}</strong></div>
+        <div><span>No. autorizacion</span><strong>{{ resultado.numeroAutorizacion || 'No disponible' }}</strong></div>
+        <div><span>Fecha autorizacion</span><strong>{{ resultado.fechaAutorizacion || 'No disponible' }}</strong></div>
+        <div class="authorization-grid__message">
+          <span>Mensaje</span>
+          <strong>{{ resultado.mensaje || 'Sin mensaje devuelto por el servicio.' }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel action-card">
+      <div class="action-card__header">
+        <div>
+          <span class="eyebrow">Clave acceso</span>
+          <h3>Consulta directa en SRI</h3>
+          <p>Validacion por clave de acceso usando el endpoint real de consulta disponible actualmente.</p>
+        </div>
+
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="consultarAutorizacionPorClave()"
+          [disabled]="consultandoPorClave() || !detalleDocumento.claveAcceso"
+        >
+          {{ consultandoPorClave() ? 'Consultando...' : 'Consultar por clave' }}
+        </button>
+      </div>
+
+      <div class="feedback feedback--error" *ngIf="autorizacionClaveError()">{{ autorizacionClaveError() }}</div>
+
+      <div class="authorization-grid" *ngIf="autorizacionClave() as resultado">
+        <div><span>Estado SRI</span><strong>{{ resultado.estado }}</strong></div>
+        <div><span>Autorizado</span><strong>{{ resultado.autorizado ? 'Si' : 'No' }}</strong></div>
+        <div><span>Encontrada</span><strong>{{ resultado.encontrada ? 'Si' : 'No' }}</strong></div>
+        <div><span>Clave acceso</span><strong>{{ resultado.claveAcceso }}</strong></div>
+        <div><span>No. autorizacion</span><strong>{{ resultado.numeroAutorizacion || 'No disponible' }}</strong></div>
+        <div><span>Fecha autorizacion</span><strong>{{ resultado.fechaAutorizacion || 'No disponible' }}</strong></div>
+        <div class="authorization-grid__message">
+          <span>Mensaje</span>
+          <strong>{{ resultado.mensaje || 'Sin mensaje devuelto por el servicio.' }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel tabs-card">
+      <div class="tabs-nav">
+        <button
+          *ngFor="let tab of tabs"
+          type="button"
+          class="tab-button"
+          [class.tab-button--active]="activeTab() === tab.id"
+          (click)="activeTab.set(tab.id)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'resumen'">
+        <div class="info-grid">
+          <div><span>Razon social receptor</span><strong>{{ detalleDocumento.razonSocialReceptor || 'N/D' }}</strong></div>
+          <div><span>Identificacion receptor</span><strong>{{ detalleDocumento.identificacionReceptor || 'N/D' }}</strong></div>
+          <div><span>Correo receptor</span><strong>{{ detalleDocumento.emailReceptor || 'N/D' }}</strong></div>
+          <div><span>Fecha emision</span><strong>{{ detalleDocumento.fechaEmision || 'N/D' }}</strong></div>
+          <div><span>Fecha recepcion</span><strong>{{ detalleDocumento.fechaRecepcion || 'N/D' }}</strong></div>
+          <div><span>Estado backend</span><strong>{{ detalleDocumento.estado }}</strong></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'estado'">
+        <div class="info-grid">
+          <div><span>ID estado</span><strong>{{ estado()?.id || 'N/D' }}</strong></div>
+          <div><span>Estado operativo</span><strong>{{ estado()?.estado || 'N/D' }}</strong></div>
+          <div><span>Intervencion</span><strong>{{ estado()?.requiereIntervencion ? 'Si' : 'No' }}</strong></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'archivos'">
+        <div class="files-header">
+          <div>
+            <strong>XML autorizado</strong>
+            <p>Consulta el XML autorizado usando la clave de acceso del documento.</p>
+          </div>
+
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="consultarXmlAutorizado()"
+            [disabled]="consultandoXml() || !detalleDocumento.claveAcceso"
+          >
+            {{ consultandoXml() ? 'Consultando XML...' : 'Consultar XML autorizado' }}
+          </button>
+        </div>
+
+        <div class="feedback feedback--error" *ngIf="xmlError()">{{ xmlError() }}</div>
+
+        <div class="xml-card" *ngIf="xmlAutorizado(); else emptyXml">
+          <div class="xml-card__meta">
+            <div>
+              <span>Clave de acceso</span>
+              <strong>{{ detalleDocumento.claveAcceso || 'No disponible' }}</strong>
+            </div>
+
+            <div class="xml-card__actions">
+              <button type="button" class="secondary-button" (click)="xmlModalOpen.set(true)">Ver ampliado</button>
+              <button type="button" class="secondary-button" (click)="copiarXmlAutorizado()">Copiar XML</button>
+              <button type="button" class="secondary-button" (click)="descargarXmlAutorizado()">Descargar XML</button>
+            </div>
+          </div>
+          <div class="xml-card__summary">
+            <span>{{ xmlLineCount() }} lineas</span>
+            <span>{{ xmlSizeLabel() }}</span>
+          </div>
+          <pre>{{ xmlFormateado() }}</pre>
+        </div>
+
+        <ng-template #emptyXml>
+          <div class="tab-panel--placeholder">
+            <strong>Sin XML cargado</strong>
+            <p>Ejecuta la consulta por clave para intentar recuperar el XML autorizado desde el backend actual.</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'historial'">
+        <div class="feedback feedback--loading" *ngIf="loadingHistorial()">Cargando historial del documento...</div>
+        <div class="feedback feedback--error" *ngIf="historialError()">{{ historialError() }}</div>
+
+        <div class="timeline-preview" *ngIf="historialItems().length; else historialFallback">
+          <article class="timeline-preview__item" *ngFor="let item of historialItems()">
+            <strong>{{ item.estadoNuevo || 'SIN ESTADO' }}</strong>
+            <p>{{ item.descripcion || 'Sin descripcion registrada.' }}</p>
+            <span>{{ item.createdAt || 'Sin fecha' }}</span>
+          </article>
+        </div>
+
+        <ng-template #historialFallback>
+          <div class="timeline-preview">
+            <article class="timeline-preview__item" *ngFor="let paso of timeline()">
+              <strong>{{ paso.titulo }}</strong>
+              <p>{{ paso.descripcion }}</p>
+              <span>{{ paso.valor }}</span>
+            </article>
+          </div>
+        </ng-template>
+
+        <div class="tab-panel--placeholder">
+          <strong>Historial del documento</strong>
+          <p *ngIf="!historialItems().length">Todavia no existen registros historicos adicionales para este documento.</p>
+          <p *ngIf="historialItems().length">Ya se estan mostrando registros historicos reales obtenidos desde backend para este documento.</p>
+        </div>
+      </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'intentosSri'">
+        <div class="feedback feedback--loading" *ngIf="loadingIntentosSri()">Cargando intentos SRI del documento...</div>
+        <div class="feedback feedback--error" *ngIf="intentosSriError()">{{ intentosSriError() }}</div>
+
+        <div class="diagnostic-grid" *ngIf="intentosSri() as intento">
+          <article class="diagnostic-card">
+            <span>Total intentos</span>
+            <strong>{{ intento.totalIntentos }}</strong>
+            <p>Contador operativo actual registrado por backend para este documento.</p>
+          </article>
+
+          <article class="diagnostic-card">
+            <span>Inicio procesamiento</span>
+            <strong>{{ intento.fechaInicioProcesamiento || 'No registrado' }}</strong>
+            <p>Marca de tiempo del inicio del flujo de procesamiento.</p>
+          </article>
+
+          <article class="diagnostic-card">
+            <span>Fin procesamiento</span>
+            <strong>{{ intento.fechaFinalizacion || 'En curso' }}</strong>
+            <p>Fecha final del procesamiento disponible actualmente en la entidad.</p>
+          </article>
+        </div>
+
+        <div class="timeline-preview" *ngIf="intentosSri()?.eventos?.length">
+          <article class="timeline-preview__item" *ngFor="let item of intentosSri()!.eventos">
+            <strong>{{ item.etapa || item.estado || 'SIN ETAPA' }}</strong>
+            <p>{{ item.mensaje || item.descripcion || 'Sin detalle registrado.' }}</p>
+            <span>{{ item.resultado || item.tipo }} · {{ item.createdAt || 'Sin fecha' }}</span>
+          </article>
+        </div>
+
+        <div class="tab-panel--placeholder">
+          <strong>Seguimiento SRI por intento</strong>
+          <p *ngIf="!intentosSri()?.eventos?.length">Esta vista queda lista para mostrar el recorrido de envio y autorizacion cuando existan eventos SRI para el documento.</p>
+          <p *ngIf="intentosSri()?.eventos?.length">Se estan mostrando eventos reales de historial y errores asociados al envio y autorizacion en SRI.</p>
+        </div>
+      </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'errores'">
+        <div class="feedback feedback--loading" *ngIf="loadingErrores()">Cargando errores del documento...</div>
+        <div class="feedback feedback--error" *ngIf="erroresError()">{{ erroresError() }}</div>
+
+        <div class="diagnostic-grid">
+          <article class="diagnostic-card">
+            <span>Estado backend</span>
+            <strong>{{ estadoActual() }}</strong>
+            <p>Estado actual registrado por el backend para este documento.</p>
+          </article>
+
+          <article class="diagnostic-card">
+            <span>Intervencion</span>
+            <strong>{{ estado()?.requiereIntervencion ? 'Requerida' : 'No requerida' }}</strong>
+            <p>Bandera de seguimiento manual basada en el flujo operativo actual.</p>
+          </article>
+
+          <article class="diagnostic-card">
+            <span>Consulta SRI</span>
+            <strong>{{ getSRIStatusLabel() }}</strong>
+            <p>Lectura derivada de la ultima consulta manual o por clave realizada desde esta pantalla.</p>
+          </article>
+        </div>
+
+        <div class="error-list" *ngIf="erroresItems().length">
+          <article class="error-item" *ngFor="let item of erroresItems()">
+            <div class="error-item__header">
+              <strong>{{ item.codigo || 'SIN CODIGO' }}</strong>
+              <span>{{ item.etapa || 'SIN ETAPA' }}</span>
+            </div>
+            <p>{{ item.mensaje }}</p>
+            <small *ngIf="item.detalle">{{ item.detalle }}</small>
+            <div class="error-item__meta">
+              <span>{{ item.recuperable ? 'Recuperable' : 'No recuperable' }}</span>
+              <span>{{ item.resuelto ? 'Resuelto' : 'Pendiente' }}</span>
+              <span>{{ item.createdAt || 'Sin fecha' }}</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="tab-panel--placeholder">
+          <strong>Errores del documento</strong>
+          <p *ngIf="!erroresItems().length">No existen incidencias registradas en backend para este documento.</p>
+          <p *ngIf="erroresItems().length">Ya se estan mostrando incidencias reales obtenidas desde backend para este documento.</p>
+        </div>
+      </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'correo'">
+        <div class="action-card__header">
+          <div>
+            <span class="eyebrow">Notificacion</span>
+            <h3>Seguimiento y reenvio de correo</h3>
+            <p>Permite revisar el historial de envio y ejecutar un reenvio manual al destinatario actual.</p>
+          </div>
+
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="reenviarCorreoDocumento()"
+            [disabled]="reenviandoCorreo() || !documento()?.id || !seguimientoCorreo()?.correoConfigurado"
+          >
+            {{ reenviandoCorreo() ? 'Reenviando...' : 'Reenviar correo' }}
+          </button>
+        </div>
+
+        <div class="feedback feedback--loading" *ngIf="loadingCorreo()">Cargando seguimiento de correo del documento...</div>
+        <div class="feedback feedback--error" *ngIf="correoError()">{{ correoError() }}</div>
+        <div class="feedback feedback--loading" *ngIf="correoSuccess()">{{ correoSuccess() }}</div>
+
+        <div class="diagnostic-grid" *ngIf="seguimientoCorreo() as correo">
+          <article class="diagnostic-card">
+            <span>Destinatario</span>
+            <strong>{{ correo.destinatario || 'No configurado' }}</strong>
+            <p>Correo receptor asociado actualmente al documento.</p>
+          </article>
+
+          <article class="diagnostic-card">
+            <span>Remitente</span>
+            <strong>{{ correo.remitente || 'No configurado' }}</strong>
+            <p>Cuenta emisora tomada de la configuracion de la empresa.</p>
+          </article>
+
+          <article class="diagnostic-card">
+            <span>Estado correo</span>
+            <strong>{{ correo.estadoActual || 'Sin estado' }}</strong>
+            <p>{{ correo.correoConfigurado ? 'El documento tiene destinatario para notificacion.' : 'El documento aun no tiene destinatario configurado.' }}</p>
+          </article>
+        </div>
+
+        <div class="timeline-preview" *ngIf="seguimientoCorreo()?.eventos?.length">
+          <article class="timeline-preview__item" *ngFor="let item of seguimientoCorreo()!.eventos">
+            <strong>{{ item.estado || 'SIN ESTADO' }}</strong>
+            <p>{{ item.mensaje || item.descripcion || 'Sin detalle registrado.' }}</p>
+            <span>{{ item.resultado || item.tipo }} - {{ item.createdAt || 'Sin fecha' }}</span>
+          </article>
+        </div>
+
+        <div class="tab-panel--placeholder">
+          <strong>Seguimiento de correo</strong>
+          <p *ngIf="!seguimientoCorreo()?.eventos?.length">Aqui apareceran los eventos reales del envio de correo cuando el flujo del documento los registre.</p>
+          <p *ngIf="seguimientoCorreo()?.eventos?.length">Ya se estan mostrando eventos reales de historial y errores asociados al envio de correo.</p>
+        </div>
+      </div>
+    </section>
+
+    <app-modal
+      [open]="xmlModalOpen()"
+      title="XML autorizado"
+      eyebrow="Archivos"
+      [wide]="true"
+      (closed)="xmlModalOpen.set(false)"
+    >
+      <div class="xml-modal">
+        <div class="xml-card__summary">
+          <span>{{ xmlLineCount() }} lineas</span>
+          <span>{{ xmlSizeLabel() }}</span>
+        </div>
+        <pre>{{ xmlFormateado() || 'No hay XML autorizado cargado.' }}</pre>
+      </div>
+    </app-modal>
+  </ng-container>
+</section>

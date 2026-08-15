@@ -1,0 +1,254 @@
+<app-page-header
+  *ngIf="!embedded()"
+  eyebrow="Configuracion"
+  title="Empresas emisoras"
+  description="Datos del emisor, ambiente SRI, correo operativo y certificados de firma electronica."
+  badge="Solo ADMIN"
+/>
+
+<section class="workspace">
+  <article class="panel form-panel" *ngIf="!embedded()">
+    <div class="panel__header">
+      <div>
+        <h3>{{ editingId ? 'Editar empresa' : 'Nueva empresa' }}</h3>
+        <p>Administramos los datos base del emisor que usa el flujo documental.</p>
+      </div>
+    </div>
+
+    <form class="company-form" [formGroup]="form" (ngSubmit)="guardar()">
+      <label>
+        <span class="form-label">RUC</span>
+        <input type="text" formControlName="ruc" maxlength="13" />
+      </label>
+
+      <label>
+        <span class="form-label">Razon social</span>
+        <input type="text" formControlName="razonSocial" />
+      </label>
+
+      <label>
+        <span class="form-label">Nombre comercial</span>
+        <input type="text" formControlName="nombreComercial" />
+      </label>
+
+      <label>
+        <span class="form-label">Direccion matriz</span>
+        <input type="text" formControlName="direccionMatriz" />
+      </label>
+
+      <label>
+        <span class="form-label">Contribuyente especial</span>
+        <input type="text" formControlName="contribuyenteEspecial" />
+      </label>
+
+      <label class="checkbox">
+        <input type="checkbox" formControlName="obligadoContabilidad" />
+        <span>Obligado a llevar contabilidad</span>
+      </label>
+
+      <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
+
+      <div class="actions">
+        <button type="submit" class="primary-button" [disabled]="saving">
+          {{ saving ? 'Guardando...' : editingId ? 'Actualizar empresa' : 'Crear empresa' }}
+        </button>
+        <button type="button" class="ghost-button" (click)="resetForm()" [disabled]="saving">
+          Limpiar
+        </button>
+      </div>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel__header">
+      <div>
+        <h3>Empresas registradas</h3>
+        <p>Base actual disponible para documentos, establecimientos y configuraciones operativas.</p>
+      </div>
+      <div class="header-actions">
+        <span class="panel-badge">{{ totalItems }} empresas</span>
+        <button *ngIf="embedded()" type="button" class="primary-button" (click)="irANuevaEmpresa()">
+          Nueva empresa
+        </button>
+      </div>
+    </div>
+
+    <p class="feedback feedback--loading" *ngIf="loading">Cargando empresas...</p>
+    <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+    <div class="table-shell" *ngIf="empresas.length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>RUC</th>
+            <th>Razon social</th>
+            <th>Comercial</th>
+            <th>Estado</th>
+            <th>Ambiente SRI</th>
+            <th>Correo</th>
+            <th>Certificado</th>
+            <th>Contabilidad</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let empresa of empresas">
+            <td>{{ empresa.ruc }}</td>
+            <td>{{ empresa.razonSocial }}</td>
+            <td>{{ empresa.nombreComercial || 'N/D' }}</td>
+            <td>
+              <span class="status-pill" [class.status-pill--inactive]="!empresa.activo">
+                {{ empresa.activo ? 'Activa' : 'Inactiva' }}
+              </span>
+            </td>
+            <td>{{ empresa.ambienteSri === 2 ? 'Produccion' : 'Pruebas' }}</td>
+            <td>{{ empresa.correoNotificaciones || 'N/D' }}</td>
+            <td>{{ empresa.certificadoConfigurado ? 'Configurado' : 'Pendiente' }}</td>
+            <td>{{ empresa.obligadoContabilidad ? 'Si' : 'No' }}</td>
+            <td class="actions-cell">
+              <button
+                type="button"
+                class="ghost-button"
+                (click)="embedded() ? irAEditarEmpresa(empresa) : editar(empresa)"
+              >
+                Editar
+              </button>
+              <button type="button" class="ghost-button" (click)="abrirConfiguracion(empresa)" *ngIf="!embedded()">
+                Configuracion
+              </button>
+              <button type="button" class="ghost-button" (click)="cambiarEstado(empresa)" [disabled]="savingStateId === empresa.id">
+                {{ savingStateId === empresa.id ? 'Procesando...' : empresa.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" *ngIf="totalItems > 0">
+      <div class="pagination__meta">
+        <span>Pagina {{ totalItems === 0 ? 0 : page + 1 }} de {{ totalPages || 1 }}</span>
+        <span>Mostrando {{ getRangeStart() }} - {{ getRangeEnd() }} de {{ totalItems }} registros</span>
+      </div>
+
+      <div class="pagination__size">
+        <span class="form-label">Filas por pagina</span>
+        <select [value]="size" (change)="onSizeChange($event)">
+          <option *ngFor="let option of sizeOptions" [value]="option">{{ option }}</option>
+        </select>
+      </div>
+
+      <div class="pagination__actions">
+        <button type="button" class="ghost-button" (click)="onPageChange(page - 1)" [disabled]="page === 0">Anterior</button>
+        <button
+          *ngFor="let pageNumber of visiblePages()"
+          type="button"
+          class="page-button"
+          [class.page-button--active]="pageNumber === page"
+          (click)="onPageChange(pageNumber)"
+        >
+          {{ pageNumber + 1 }}
+        </button>
+        <button
+          type="button"
+          class="ghost-button"
+          (click)="onPageChange(page + 1)"
+          [disabled]="page + 1 >= totalPages"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </article>
+
+  <article class="panel" *ngIf="selectedEmpresa && !embedded()">
+    <div class="panel__header">
+      <div>
+        <h3>Configuracion SRI y correo</h3>
+        <p>Administramos ambiente, remitentes y certificado del emisor seleccionado.</p>
+      </div>
+      <div class="config-badge">
+        {{ selectedEmpresa.razonSocial }}
+      </div>
+    </div>
+
+    <form class="company-form company-form--config" [formGroup]="configForm" (ngSubmit)="guardarConfiguracion()">
+      <label>
+        <span class="form-label">Ambiente SRI</span>
+        <select formControlName="ambienteSri">
+          <option [value]="1">Pruebas</option>
+          <option [value]="2">Produccion</option>
+        </select>
+      </label>
+
+      <label>
+        <span class="form-label">Correo de notificaciones</span>
+        <input type="email" formControlName="correoNotificaciones" placeholder="facturacion@empresa.ec" />
+      </label>
+
+      <label>
+        <span class="form-label">Correo de respuesta</span>
+        <input type="email" formControlName="correoRespuesta" placeholder="noreply@empresa.ec" />
+      </label>
+
+      <label>
+        <span class="form-label">Nombre del certificado</span>
+        <input type="text" formControlName="certificadoNombre" placeholder="firma-emisor.p12" />
+      </label>
+
+      <label>
+        <span class="form-label">Clave del certificado</span>
+        <input type="password" formControlName="certificadoClave" placeholder="Solo si cargas o reemplazas el certificado" />
+      </label>
+
+      <label>
+        <span class="form-label">Archivo PKCS12 (.p12 / .pfx)</span>
+        <input type="file" accept=".p12,.pfx,application/x-pkcs12" (change)="onCertificadoSeleccionado($event)" />
+      </label>
+
+      <div class="cert-summary" *ngIf="configuracion">
+        <div
+          class="cert-alert"
+          [class.cert-alert--danger]="getCertificadoEstado().tone === 'danger'"
+          [class.cert-alert--warning]="getCertificadoEstado().tone === 'warning'"
+          [class.cert-alert--success]="getCertificadoEstado().tone === 'success'"
+          [class.cert-alert--muted]="getCertificadoEstado().tone === 'muted'"
+        >
+          <strong>{{ getCertificadoEstado().title }}</strong>
+          <span>{{ getCertificadoEstado().detail }}</span>
+        </div>
+        <div><strong>Estado:</strong> {{ configuracion.certificadoConfigurado ? 'Configurado' : 'Sin certificado' }}</div>
+        <div><strong>Alias:</strong> {{ configuracion.certificadoAlias || 'N/D' }}</div>
+        <div><strong>Titular:</strong> {{ configuracion.certificadoTitular || 'N/D' }}</div>
+        <div><strong>Vigencia:</strong> {{ formatVigencia(configuracion.certificadoVigenciaDesde, configuracion.certificadoVigenciaHasta) }}</div>
+      </div>
+
+      <label class="checkbox">
+        <input type="checkbox" formControlName="limpiarCertificado" />
+        <span>Eliminar certificado actual al guardar</span>
+      </label>
+
+      <p class="feedback feedback--loading" *ngIf="loadingConfiguracion">Cargando configuracion...</p>
+      <p class="feedback feedback--info" *ngIf="archivoCertificadoNombre && !loadingConfiguracion">
+        Archivo seleccionado: {{ archivoCertificadoNombre }}
+      </p>
+      <p class="feedback feedback--error" *ngIf="configError">{{ configError }}</p>
+
+      <div class="actions">
+        <button type="submit" class="primary-button" [disabled]="savingConfig || !selectedEmpresa">
+          {{ savingConfig ? 'Guardando...' : 'Guardar configuracion' }}
+        </button>
+        <button type="button" class="ghost-button" (click)="recargarConfiguracion()" [disabled]="savingConfig || !selectedEmpresa">
+          Recargar
+        </button>
+      </div>
+    </form>
+  </article>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>No hay empresas registradas</strong>
+    <p>Cuando creemos la primera empresa emisora, aparecera aqui.</p>
+  </div>
+</ng-template>

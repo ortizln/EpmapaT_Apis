@@ -1,0 +1,36 @@
+<app-page-header eyebrow="Control" title="Seguimiento de correos" description="Vista operativa conectada a las metricas actuales del backend para notificaciones documentales." badge="Conectado" />
+<div class="context-banner" *ngIf="companyContext.empresaActiva() as empresaActiva"><span>Empresa activa</span><strong>{{ empresaActiva.razonSocial }}</strong><small>{{ empresaActiva.ruc }}</small></div>
+<p class="feedback feedback--loading" *ngIf="loading">Consultando metricas de correo...</p>
+<p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+<ng-container *ngIf="snapshot as data">
+  <section class="workspace">
+    <article class="panel summary-panel">
+      <div class="panel__header"><div><h2>Indicadores de envio</h2><p>Lectura real disponible hoy desde el resumen operativo del backend.</p></div></div>
+      <div class="summary-grid">
+        <div><span>Correos pendientes</span><strong>{{ data.resumen.correosPendientes }}</strong></div>
+        <div><span>Autorizados</span><strong>{{ data.resumen.autorizados }}</strong></div>
+        <div><span>Procesando</span><strong>{{ data.resumen.procesando }}</strong></div>
+        <div><span>Errores activos</span><strong>{{ data.resumen.errores }}</strong></div>
+      </div>
+    </article>
+    <article class="panel summary-panel">
+      <div class="panel__header"><div><h2>Ritmo documental</h2><p>Volumen reciente de documentos que impactan el circuito de notificacion.</p></div></div>
+      <div class="table-shell" *ngIf="data.porDia.length; else emptyState">
+        <table>
+          <thead><tr><th>Fecha</th><th>Documentos</th></tr></thead>
+          <tbody><tr *ngFor="let item of pagedTimeline()"><td>{{ item.fecha }}</td><td>{{ item.cantidad }} documentos</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pagination" *ngIf="totalItems > 0">
+        <div class="pagination__meta"><span>Pagina {{ totalItems === 0 ? 0 : currentPage + 1 }} de {{ totalPages }}</span><span>Mostrando {{ getRangeStart() }} - {{ getRangeEnd() }} de {{ totalItems }} registros</span></div>
+        <div class="pagination__size"><span class="form-label">Filas por pagina</span><select [value]="pageSize" (change)="onSizeChange($event)"><option *ngFor="let option of sizeOptions" [value]="option">{{ option }}</option></select></div>
+        <div class="pagination__actions">
+          <button type="button" class="secondary-button" (click)="onPageChange(currentPage - 1)" [disabled]="currentPage === 0">Anterior</button>
+          <button *ngFor="let pageNumber of visiblePages()" type="button" class="page-button" [class.page-button--active]="pageNumber === currentPage" (click)="onPageChange(pageNumber)">{{ pageNumber + 1 }}</button>
+          <button type="button" class="secondary-button" (click)="onPageChange(currentPage + 1)" [disabled]="currentPage + 1 >= totalPages">Siguiente</button>
+        </div>
+      </div>
+      <ng-template #emptyState><div class="empty-state"><strong>Sin actividad reciente</strong><p>Cuando el backend acumule volumen documental por fecha, apareceran aqui referencias utiles para la cola de correos.</p></div></ng-template>
+    </article>
+  </section>
+</ng-container>

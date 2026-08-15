@@ -45,3 +45,35 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+### Environment & Secrets ###
+.env
+.env.local
+.env.*.local
+*.p12
+*.pfx
+*.jks
+*.keystore
+certificados/
+secrets/
+certs/
+keys/
+
+### Application Config ###
+application-local.yml
+application-dev.yml
+local-config.properties
+
+### Logs ###
+*.log
+logs/
+
+### OS ###
+Thumbs.db
+.DS_Store
+._*

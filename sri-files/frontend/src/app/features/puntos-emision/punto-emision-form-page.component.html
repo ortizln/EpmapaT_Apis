@@ -1,0 +1,35 @@
+<app-page-header
+  eyebrow="Configuracion"
+  [title]="editingId ? 'Editar punto de emision' : 'Nuevo punto de emision'"
+  description="Formulario dedicado para asociar puntos de emision a un establecimiento."
+  badge="Solo ADMIN"
+>
+  <button type="button" class="secondary-button" (click)="volver()">Volver a catalogos</button>
+</app-page-header>
+
+<section class="workspace">
+  <article class="panel">
+    <div class="panel__header">
+      <div>
+        <h3>{{ editingId ? 'Datos del punto' : 'Registro de nuevo punto de emision' }}</h3>
+        <p>Selecciona empresa y establecimiento antes de definir el punto operativo.</p>
+      </div>
+    </div>
+
+    <form class="point-form" [formGroup]="form" (ngSubmit)="guardar()">
+      <label><span class="form-label">Empresa</span><select formControlName="empresaId" (change)="onEmpresaChange()"><option value="">Selecciona una empresa</option><option *ngFor="let empresa of empresas" [value]="empresa.id">{{ empresa.razonSocial }}</option></select></label>
+      <label><span class="form-label">Establecimiento</span><select formControlName="establecimientoId"><option value="">Selecciona un establecimiento</option><option *ngFor="let establecimiento of establecimientos" [value]="establecimiento.id">{{ establecimiento.codigo }} - {{ establecimiento.nombre || 'Sin nombre' }}</option></select></label>
+      <label><span class="form-label">Codigo</span><input type="text" formControlName="codigo" maxlength="3" /></label>
+      <label><span class="form-label">Nombre</span><input type="text" formControlName="nombre" /></label>
+
+      <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
+
+      <div class="actions">
+        <button type="submit" class="primary-button" [disabled]="saving">
+          {{ saving ? 'Guardando...' : editingId ? 'Actualizar punto' : 'Crear punto' }}
+        </button>
+        <button type="button" class="ghost-button" (click)="volver()" [disabled]="saving">Cancelar</button>
+      </div>
+    </form>
+  </article>
+</section>

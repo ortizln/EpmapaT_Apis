@@ -1,0 +1,28 @@
+<app-page-header
+  eyebrow="Configuracion"
+  title="Catalogos operativos"
+  description="Administracion centralizada de empresas, establecimientos, puntos de emision y secuenciales dentro de un solo modulo."
+  badge="Solo ADMIN"
+/>
+
+<section class="tabs-shell">
+  <div class="tabs-nav">
+    <button
+      type="button"
+      *ngFor="let tab of tabs"
+      class="tab-button"
+      [class.tab-button--active]="(activeTab$ | async) === tab.id"
+      (click)="selectTab(tab.id)"
+    >
+      <strong>{{ tab.label }}</strong>
+      <span>{{ tab.description }}</span>
+    </button>
+  </div>
+
+  <div class="tabs-content" *ngIf="activeTab$ | async as activeTab">
+    <app-empresas-page *ngIf="activeTab === 'empresas'" [embedded]="true" />
+    <app-establecimientos-page *ngIf="activeTab === 'establecimientos'" [embedded]="true" />
+    <app-puntos-emision-page *ngIf="activeTab === 'puntos-emision'" [embedded]="true" />
+    <app-secuenciales-page *ngIf="activeTab === 'secuenciales'" [embedded]="true" />
+  </div>
+</section>

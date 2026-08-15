@@ -1,0 +1,94 @@
+<app-page-header *ngIf="!embedded()" eyebrow="Configuracion" title="Secuenciales" badge="Solo ADMIN" />
+
+<section class="workspace">
+  <article class="panel filters-panel">
+    <div class="panel__header">
+      <div>
+        <h3>Contexto operativo</h3>
+        <p>Selecciona empresa, establecimiento y punto de emision para configurar sus secuenciales.</p>
+      </div>
+      <button *ngIf="embedded() && puntoEmisionId" type="button" class="primary-button" (click)="irAAdministrarSecuenciales()">
+        Administrar secuenciales
+      </button>
+    </div>
+
+    <div class="filters-grid">
+      <label>
+        <span>Empresa</span>
+        <select [value]="empresaId" (change)="onEmpresaChange($event)">
+          <option value="">Selecciona una empresa</option>
+          <option *ngFor="let empresa of empresas" [value]="empresa.id">{{ empresa.razonSocial }}</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Establecimiento</span>
+        <select [value]="establecimientoId" (change)="onEstablecimientoChange($event)">
+          <option value="">Selecciona un establecimiento</option>
+          <option *ngFor="let establecimiento of establecimientos" [value]="establecimiento.id">
+            {{ establecimiento.codigo }} - {{ establecimiento.nombre || 'Sin nombre' }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        <span>Punto de emision</span>
+        <select [value]="puntoEmisionId" (change)="onPuntoEmisionChange($event)">
+          <option value="">Selecciona un punto</option>
+          <option *ngFor="let punto of puntosEmision" [value]="punto.id">
+            {{ punto.codigo }} - {{ punto.nombre || 'Sin nombre' }}
+          </option>
+        </select>
+      </label>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel__header">
+      <div>
+        <h3>Secuenciales por tipo documental</h3>
+        <p>Ajustamos el valor actual y el estado de cada tipo soportado.</p>
+      </div>
+    </div>
+
+    <p class="feedback feedback--loading" *ngIf="loading">Cargando secuenciales...</p>
+    <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+    <div class="table-shell" *ngIf="secuenciales.length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo documento</th>
+            <th>Valor actual</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let secuencial of secuenciales">
+            <td>{{ formatLabel(secuencial.tipoDocumento) }}</td>
+            <td>{{ getDraftValor(secuencial) }}</td>
+            <td>{{ getDraftActivo(secuencial) ? 'Activo' : 'Inactivo' }}</td>
+            <td class="actions-cell">
+              <button
+                type="button"
+                class="primary-button"
+                (click)="embedded() ? irAAdministrarSecuenciales() : guardar(secuencial)"
+                [disabled]="(!embedded() && savingTipo === secuencial.tipoDocumento) || !puntoEmisionId"
+              >
+                {{ embedded() ? 'Editar' : savingTipo === secuencial.tipoDocumento ? 'Guardando...' : 'Guardar' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>No hay secuenciales para mostrar</strong>
+    <p>Selecciona un punto de emision para cargar o inicializar los tipos documentales.</p>
+  </div>
+</ng-template>

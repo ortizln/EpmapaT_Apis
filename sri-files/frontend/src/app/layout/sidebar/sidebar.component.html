@@ -1,0 +1,124 @@
+<aside
+  class="sidebar"
+  [class.sidebar--collapsed]="ui.sidebarCollapsed()"
+  [class.sidebar--mobile-open]="ui.mobileSidebarOpen()"
+>
+  <div class="brand">
+    <span class="brand__eyebrow">SRI Files</span>
+    <h1>{{ ui.sidebarCollapsed() ? 'SRI' : 'Administracion documental' }}</h1>
+    <p *ngIf="!ui.sidebarCollapsed()">Panel operativo para facturacion electronica y gestion de comprobantes.</p>
+  </div>
+
+  <nav class="menu">
+    <section class="menu__group">
+      <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">General</p>
+
+      <a routerLink="/dashboard" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Dashboard' : null" (click)="ui.closeMobileSidebar()">
+        <span class="menu__icon">D</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Dashboard</span>
+      </a>
+    </section>
+
+    <section class="menu__group">
+      <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">Documentos</p>
+
+      <a routerLink="/documentos" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Documentos' : null" (click)="ui.closeMobileSidebar()">
+        <span class="menu__icon">B</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Documentos</span>
+      </a>
+      <a routerLink="/facturacion" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Facturacion' : null" (click)="ui.closeMobileSidebar()">
+        <span class="menu__icon">F</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Facturacion</span>
+      </a>
+      <a routerLink="/retenciones" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Retenciones' : null" (click)="ui.closeMobileSidebar()">
+        <span class="menu__icon">R</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Retenciones</span>
+      </a>
+      <a routerLink="/guias-remision" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Guias de remision' : null" (click)="ui.closeMobileSidebar()">
+        <span class="menu__icon">G</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Guias remision</span>
+      </a>
+      <a routerLink="/notas-credito" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Notas de credito' : null" (click)="ui.closeMobileSidebar()">
+        <span class="menu__icon">C</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Notas credito</span>
+      </a>
+      <a routerLink="/notas-debito" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Notas de debito' : null" (click)="ui.closeMobileSidebar()">
+        <span class="menu__icon">D</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Notas debito</span>
+      </a>
+      <a routerLink="/liquidaciones-compra" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Liquidaciones de compra' : null" (click)="ui.closeMobileSidebar()">
+        <span class="menu__icon">L</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Liquidaciones</span>
+      </a>
+    </section>
+
+    <section class="menu__group" *ngIf="authStore.usuario()?.roles?.includes('ADMIN')">
+      <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">Administracion</p>
+
+      <a
+        routerLink="/catalogos"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Catalogos operativos' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">E</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Catalogos operativos</span>
+      </a>
+      <a
+        routerLink="/usuarios"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Usuarios' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">U</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Usuarios</span>
+      </a>
+      <a
+        routerLink="/administracion/certificados"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Certificados' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">T</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Certificados</span>
+      </a>
+      <a
+        routerLink="/administracion/configuracion-correo"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Correo' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">&#64;</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Correo</span>
+      </a>
+    </section>
+
+    <section class="menu__group" *ngIf="authStore.usuario()?.roles?.includes('ADMIN')">
+      <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">Control</p>
+
+      <a
+        routerLink="/control/errores"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Errores' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">!</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Errores</span>
+      </a>
+      <a
+        routerLink="/control/correos"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Control de correos' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">M</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Control correos</span>
+      </a>
+    </section>
+  </nav>
+
+  <div class="sidebar__footer" *ngIf="!ui.sidebarCollapsed()">
+    <strong>{{ authStore.usuario()?.nombre || 'Sin sesion' }}</strong>
+    <span>{{ authStore.usuario()?.roles?.join(', ') || 'Operador' }}</span>
+  </div>
+</aside>

@@ -1,0 +1,27 @@
+<div
+  class="admin-shell"
+  [class.admin-shell--collapsed]="ui.sidebarCollapsed()"
+  [class.admin-shell--mobile-open]="ui.mobileSidebarOpen()"
+>
+  <app-sidebar />
+  <button
+    *ngIf="ui.mobileSidebarOpen()"
+    type="button"
+    class="sidebar-overlay"
+    aria-label="Cerrar menu lateral"
+    (click)="ui.closeMobileSidebar()"
+  ></button>
+
+  <div class="admin-content">
+    <app-navbar />
+    <app-breadcrumb />
+
+    <main class="page-content">
+      <section class="loading-bar" *ngIf="ui.loading()"></section>
+      <router-outlet />
+    </main>
+
+    <app-footer />
+  </div>
+</div>
+<app-alert-center />

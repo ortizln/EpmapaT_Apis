@@ -1,0 +1,164 @@
+<app-page-header
+  eyebrow="Seguridad"
+  title="Administracion de usuarios"
+  description="Gestion de accesos, activacion, reseteo de credenciales y auditoria operativa."
+  badge="Solo ADMIN"
+/>
+
+<section class="workspace">
+  <article class="panel panel--table">
+    <div class="panel__header">
+      <div>
+        <h2>Usuarios registrados</h2>
+        <p>Controla accesos, estados, reinicio de contrasenas y auditoria desde un solo lugar.</p>
+      </div>
+      <div class="header-actions">
+        <span class="panel-badge">{{ totalItems }} usuarios</span>
+        <button type="button" class="primary-button" (click)="irANuevoUsuario()">Nuevo usuario</button>
+        <button type="button" class="ghost-button" (click)="cargarUsuarios()" [disabled]="loading">
+          {{ loading ? 'Actualizando...' : 'Actualizar' }}
+        </button>
+      </div>
+    </div>
+
+    <p class="feedback feedback--error" *ngIf="errorListado">{{ errorListado }}</p>
+
+    <div class="table-shell" *ngIf="usuarios.length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let usuario of usuarios">
+            <td>{{ usuario.username }}</td>
+            <td>{{ usuario.nombre }}</td>
+            <td>{{ usuario.correo }}</td>
+            <td><span class="pill">{{ usuario.rol }}</span></td>
+            <td>
+              <span class="status-pill" [class.status-pill--inactive]="!usuario.activo">
+                {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <button
+                  type="button"
+                  class="action-button"
+                  (click)="toggleEstado(usuario)"
+                  [disabled]="processingUserId === usuario.id || isSelfAdminDeactivateBlocked(usuario)"
+                >
+                  {{ usuario.activo ? 'Desactivar' : 'Activar' }}
+                </button>
+
+                <button
+                  type="button"
+                  class="action-button action-button--secondary"
+                  (click)="irAEditarUsuario(usuario)"
+                  [disabled]="processingUserId === usuario.id"
+                >
+                  Editar
+                </button>
+
+                <button
+                  type="button"
+                  class="action-button action-button--secondary"
+                  (click)="abrirAuditoria(usuario)"
+                >
+                  Ver info
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" *ngIf="totalItems > 0">
+      <div class="pagination__meta">
+        <span>Pagina {{ totalItems === 0 ? 0 : page + 1 }} de {{ totalPages || 1 }}</span>
+        <span>Mostrando {{ getRangeStart() }} - {{ getRangeEnd() }} de {{ totalItems }} registros</span>
+      </div>
+
+      <div class="pagination__size">
+        <span class="form-label">Filas por pagina</span>
+        <select [value]="size" (change)="onSizeChange($event)">
+          <option *ngFor="let option of sizeOptions" [value]="option">{{ option }}</option>
+        </select>
+      </div>
+
+      <div class="pagination__actions">
+        <button type="button" class="ghost-button" (click)="onPageChange(page - 1)" [disabled]="page === 0">Anterior</button>
+        <button
+          *ngFor="let pageNumber of visiblePages()"
+          type="button"
+          class="page-button"
+          [class.page-button--active]="pageNumber === page"
+          (click)="onPageChange(pageNumber)"
+        >
+          {{ pageNumber + 1 }}
+        </button>
+        <button
+          type="button"
+          class="ghost-button"
+          (click)="onPageChange(page + 1)"
+          [disabled]="page + 1 >= totalPages"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </article>
+</section>
+
+<app-modal
+  [open]="!!usuarioAuditoriaSeleccionado"
+  title="Informacion del usuario"
+  eyebrow="Auditoria"
+  [wide]="true"
+  (closed)="cerrarAuditoria()"
+>
+  <div *ngIf="usuarioAuditoriaSeleccionado as usuario" class="modal-user">
+    <div class="modal-user__summary">
+      <div><strong>Usuario:</strong> {{ usuario.username }}</div>
+      <div><strong>Nombre:</strong> {{ usuario.nombre }}</div>
+      <div><strong>Correo:</strong> {{ usuario.correo }}</div>
+      <div><strong>Rol:</strong> {{ usuario.rol }}</div>
+      <div><strong>Estado:</strong> {{ usuario.activo ? 'Activo' : 'Inactivo' }}</div>
+    </div>
+
+    <p class="feedback feedback--error" *ngIf="errorAuditoria">{{ errorAuditoria }}</p>
+    <p class="feedback" *ngIf="loadingAuditoria">Cargando historial...</p>
+
+    <div class="audit-list" *ngIf="auditoriaUsuario.length; else emptyAudit">
+      <article class="audit-item" *ngFor="let item of auditoriaUsuario">
+        <div class="audit-item__head">
+          <strong>{{ item.accion }}</strong>
+          <span>{{ item.fecha }}</span>
+        </div>
+        <p>{{ item.descripcion }}</p>
+        <small>Actor: {{ item.actorUsername || 'Sistema' }}</small>
+      </article>
+    </div>
+  </div>
+</app-modal>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>No hay usuarios adicionales</strong>
+    <p>Cuando registres accesos operativos, apareceran listados aqui.</p>
+  </div>
+</ng-template>
+
+<ng-template #emptyAudit>
+  <div class="empty-state">
+    <strong>Sin eventos registrados</strong>
+    <p>La auditoria de este usuario aparecera aqui cuando existan acciones sobre su cuenta.</p>
+  </div>
+</ng-template>

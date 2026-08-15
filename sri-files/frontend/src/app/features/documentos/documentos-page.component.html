@@ -1,0 +1,69 @@
+<app-page-header
+  eyebrow="Operacion"
+  title="Documentos recepcionados"
+  description="Bandeja de documentos registrados en la plataforma y consulta de seguimiento por UUID."
+  badge="Recepcion operativa"
+>
+  <button type="button" (click)="irANuevoDocumento()">Nuevo documento</button>
+</app-page-header>
+
+<section class="document-tabs">
+  <button
+    type="button"
+    class="document-tab"
+    [class.document-tab--active]="!filtroTipoDocumento"
+    (click)="onFiltroTipoDocumentoChange('')"
+  >
+    <span class="document-tab__title">Todos</span>
+    <span class="document-tab__subtitle">Bandeja general</span>
+  </button>
+
+  <button
+    *ngFor="let tab of documentTypeTabs"
+    type="button"
+    class="document-tab"
+    [class.document-tab--active]="filtroTipoDocumento === tab.type"
+    (click)="onFiltroTipoDocumentoChange(tab.type)"
+  >
+    <span class="document-tab__title">{{ tab.label }}</span>
+    <span class="document-tab__subtitle">{{ tab.subtitle }}</span>
+    <span class="document-tab__actions">
+      <button
+        type="button"
+        class="document-tab__link"
+        (click)="abrirModulo(tab.route, $event)"
+      >
+        Abrir modulo
+      </button>
+    </span>
+  </button>
+</section>
+
+<app-documento-seguimiento
+  [form]="seguimientoForm"
+  [detalle]="detalleDocumento"
+  [estado]="estadoDocumento"
+  [loading]="loadingSeguimiento"
+  [error]="errorSeguimiento"
+  (consultar)="consultarSeguimiento()"
+/>
+
+<app-documentos-recientes-table
+  [documentos]="bandejaDocumentos"
+  [tiposDocumento]="tiposDocumento"
+  [tipoDocumento]="filtroTipoDocumento"
+  [estado]="filtroEstado"
+  [busqueda]="filtroBusqueda"
+  [page]="bandejaPage"
+  [size]="bandejaSize"
+  [totalPages]="bandejaTotalPages"
+  [totalItems]="bandejaTotalItems"
+  [loading]="bandejaLoading"
+  [error]="bandejaError"
+  (tipoDocumentoChange)="onFiltroTipoDocumentoChange($event)"
+  (estadoChange)="onFiltroEstadoChange($event)"
+  (busquedaChange)="onFiltroBusquedaChange($event)"
+  (pageChange)="onBandejaPageChange($event)"
+  (sizeChange)="onBandejaSizeChange($event)"
+  (verDetalle)="irADetalleDocumento($event)"
+/>

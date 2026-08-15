@@ -1,0 +1,16 @@
+<div class="modal-backdrop" *ngIf="open()" (click)="closed.emit()">
+  <section class="modal-card" [class.modal-card--wide]="wide()" (click)="$event.stopPropagation()">
+    <header class="modal-card__header">
+      <div>
+        <p *ngIf="eyebrow()">{{ eyebrow() }}</p>
+        <h2>{{ title() }}</h2>
+      </div>
+
+      <button type="button" class="modal-card__close" (click)="closed.emit()" aria-label="Cerrar modal">x</button>
+    </header>
+
+    <div class="modal-card__content">
+      <ng-content></ng-content>
+    </div>
+  </section>
+</div>
