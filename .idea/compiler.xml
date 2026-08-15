@@ -10,6 +10,7 @@
         <module name="pagosonline" />
         <module name="bandred" />
         <module name="epmapaapi" />
+        <module name="sri-files" />
       </profile>
       <profile name="Annotation profile for emails" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -22,9 +23,6 @@
         <module name="emails" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="sri-files" target="17" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
