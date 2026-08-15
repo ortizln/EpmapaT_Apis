@@ -2,11 +2,14 @@ server {
     listen 80;
     server_name __SERVER_NAME__;
 
-    root __PUBLIC_DIR__;
-    index index.html;
+    location = / {
+        return 302 __SITE_PATH__;
+    }
 
-    location / {
-        try_files $uri $uri/ /index.html;
+    location __SITE_PATH__ {
+        alias __PUBLIC_DIR__/;
+        index index.html;
+        try_files $uri $uri/ __SITE_PATH__index.html;
     }
 
     location /api/ {
@@ -18,7 +21,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)$ {
+    location ~* ^__SITE_PATH__(.*)\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)$ {
         expires 7d;
         add_header Cache-Control "public, max-age=604800, immutable";
         try_files $uri =404;

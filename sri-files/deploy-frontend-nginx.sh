@@ -7,6 +7,7 @@ cd "${FRONTEND_DIR}"
 
 APP_NAME="${APP_NAME:-sri-files-frontend}"
 BUILD_CONFIGURATION="${BUILD_CONFIGURATION:-production}"
+BASE_HREF="${BASE_HREF:-/sri-files/}"
 PUBLIC_DIR="${PUBLIC_DIR:-/var/www/${APP_NAME}}"
 NGINX_SITES_AVAILABLE="${NGINX_SITES_AVAILABLE:-/etc/nginx/sites-available}"
 NGINX_SITES_ENABLED="${NGINX_SITES_ENABLED:-/etc/nginx/sites-enabled}"
@@ -16,6 +17,7 @@ API_BASE_URL="${API_BASE_URL:-http://127.0.0.1:9090}"
 NGINX_SERVICE_NAME="${NGINX_SERVICE_NAME:-nginx}"
 USE_SUDO="${USE_SUDO:-auto}"
 INSTALL_NGINX_CONF="${INSTALL_NGINX_CONF:-true}"
+SITE_PATH="${SITE_PATH:-/sri-files/}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -46,8 +48,10 @@ run_root() {
 
 echo "[INFO] Fecha: 2026-08-15"
 echo "[INFO] Build Angular: ${BUILD_CONFIGURATION}"
+echo "[INFO] Base href Angular: ${BASE_HREF}"
 echo "[INFO] Directorio publico Nginx: ${PUBLIC_DIR}"
 echo "[INFO] API backend: ${API_BASE_URL}"
+echo "[INFO] Ruta publica Nginx: ${SITE_PATH}"
 
 require_cmd npm
 require_cmd node
@@ -57,7 +61,7 @@ echo "[INFO] Instalando dependencias del frontend..."
 npm install
 
 echo "[INFO] Generando build Angular..."
-npx ng build --configuration "${BUILD_CONFIGURATION}"
+npx ng build --configuration "${BUILD_CONFIGURATION}" --base-href "${BASE_HREF}"
 
 BUILD_DIR="${FRONTEND_DIR}/dist/frontend/browser"
 if [[ ! -d "${BUILD_DIR}" ]]; then
@@ -82,6 +86,7 @@ if [[ "${INSTALL_NGINX_CONF}" == "true" ]]; then
     -e "s|__SERVER_NAME__|${SERVER_NAME}|g" \
     -e "s|__PUBLIC_DIR__|${PUBLIC_DIR}|g" \
     -e "s|__API_BASE_URL__|${API_BASE_URL}|g" \
+    -e "s|__SITE_PATH__|${SITE_PATH}|g" \
     "${TEMPLATE_FILE}" > "${TMP_CONF}"
 
   echo "[INFO] Instalando configuracion Nginx ${NGINX_CONF_NAME}..."

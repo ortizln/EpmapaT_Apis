@@ -80,6 +80,7 @@ Este script:
 - instala la configuracion Nginx
 - valida Nginx
 - recarga el servicio
+- permite definir la subruta productiva con `BASE_HREF`
 
 ### Ejecucion
 
@@ -89,8 +90,27 @@ Desde la raiz del repo:
 chmod +x deploy-frontend-nginx.sh
 SERVER_NAME=midominio.com \
 API_BASE_URL=http://127.0.0.1:9090 \
+BASE_HREF=/sri-files/ \
+SITE_PATH=/sri-files/ \
 PUBLIC_DIR=/var/www/sri-files-frontend \
 ./deploy-frontend-nginx.sh
+```
+
+### Comportamiento esperado
+
+- En local Angular sigue trabajando desde `/`
+- En produccion el build se publica bajo `/sri-files/`
+
+Para desarrollo local no necesitas cambiar nada porque el archivo [frontend/src/index.html](C:/Users/Alexi/Documents/PROYECTOS_EPMAPA-T/EpmapaT_Apis/sri-files/frontend/src/index.html) mantiene:
+
+```html
+<base href="/">
+```
+
+Y en produccion el script fuerza:
+
+```bash
+--base-href /sri-files/
 ```
 
 ## 3. Configuracion Nginx
@@ -110,11 +130,14 @@ server {
     listen 80;
     server_name midominio.com;
 
-    root /var/www/sri-files-frontend;
-    index index.html;
+    location = / {
+        return 302 /sri-files/;
+    }
 
-    location / {
-        try_files $uri $uri/ /index.html;
+    location /sri-files/ {
+        alias /var/www/sri-files-frontend/;
+        index index.html;
+        try_files $uri $uri/ /sri-files/index.html;
     }
 
     location /api/ {
@@ -126,7 +149,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)$ {
+    location ~* ^/sri-files/(.*)\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)$ {
         expires 7d;
         add_header Cache-Control "public, max-age=604800, immutable";
         try_files $uri =404;
@@ -233,6 +256,17 @@ Compila asi:
 ```bash
 cd frontend
 npx ng build --configuration production --base-href /sri-files/
+```
+
+O usando el script ya ajustado:
+
+```bash
+SERVER_NAME=midominio.com \
+API_BASE_URL=http://127.0.0.1:9090 \
+BASE_HREF=/sri-files/ \
+SITE_PATH=/sri-files/ \
+PUBLIC_DIR=/var/www/sri-files-frontend \
+./deploy-frontend-nginx.sh
 ```
 
 ### Nginx con subruta
