@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface DocumentoEstadoHistorialRepository extends JpaRepository<DocumentoEstadoHistorial, Long> {
     List<DocumentoEstadoHistorial> findByDocumento_UuidOrderByCreatedAtDesc(UUID uuid);
+    List<DocumentoEstadoHistorial> findTop100ByOrderByCreatedAtDesc();
 }

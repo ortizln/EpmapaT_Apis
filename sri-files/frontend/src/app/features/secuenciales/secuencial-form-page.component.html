@@ -45,7 +45,7 @@
             <td><input type="number" min="0" [value]="getDraftValor(secuencial)" (input)="onValorChange(secuencial.tipoDocumento, $event)" /></td>
             <td><label class="toggle"><input type="checkbox" [checked]="getDraftActivo(secuencial)" (change)="onActivoChange(secuencial.tipoDocumento, $event)" /><span>{{ getDraftActivo(secuencial) ? 'Activo' : 'Inactivo' }}</span></label></td>
             <td class="actions-cell">
-              <button type="button" class="primary-button" (click)="guardar(secuencial)" [disabled]="savingTipo === secuencial.tipoDocumento || !puntoEmisionId">
+              <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="button" class="primary-button" (click)="guardar(secuencial)" [disabled]="savingTipo === secuencial.tipoDocumento || !puntoEmisionId">
                 {{ savingTipo === secuencial.tipoDocumento ? 'Guardando...' : 'Guardar' }}
               </button>
             </td>

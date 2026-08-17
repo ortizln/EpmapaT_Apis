@@ -1,0 +1,127 @@
+<app-page-header eyebrow="Control" title="Auditoria de documentos" description="Eventos recientes del flujo documental para seguimiento operativo y trazabilidad." badge="Tiempo real" />
+
+<section class="workspace">
+  <article class="panel panel--table">
+    <div class="panel__header">
+      <div>
+        <h2>Eventos recientes</h2>
+        <p>Cambios de estado, origen y referencias clave de los comprobantes procesados.</p>
+      </div>
+      <div class="header-actions">
+        <span class="panel-badge">{{ totalItems }} eventos</span>
+        <button type="button" class="ghost-button" (click)="cargar()" [disabled]="loading">
+          {{ loading ? 'Actualizando...' : 'Actualizar' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <label class="filter-field">
+        <span>Buscar</span>
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          [ngModel]="busqueda"
+          (ngModelChange)="onBusquedaChange($event)"
+          placeholder="UUID, numero, external ID, detalle..."
+        />
+      </label>
+
+      <label class="filter-field">
+        <span>Tipo</span>
+        <select class="form-select form-select-sm" [ngModel]="filtroTipo" (ngModelChange)="onFiltroTipoChange($event)">
+          <option value="TODOS">Todos</option>
+          <option *ngFor="let tipo of tiposDisponibles" [value]="tipo">{{ formatLabel(tipo) }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Estado nuevo</span>
+        <select class="form-select form-select-sm" [ngModel]="filtroEstado" (ngModelChange)="onFiltroEstadoChange($event)">
+          <option value="TODOS">Todos</option>
+          <option *ngFor="let estado of estadosDisponibles" [value]="estado">{{ formatLabel(estado) }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Origen</span>
+        <select class="form-select form-select-sm" [ngModel]="filtroOrigen" (ngModelChange)="onFiltroOrigenChange($event)">
+          <option value="TODOS">Todos</option>
+          <option *ngFor="let origen of origenesDisponibles" [value]="origen">{{ formatLabel(origen) }}</option>
+        </select>
+      </label>
+
+      <div class="filter-actions">
+        <button type="button" class="ghost-button" (click)="limpiarFiltros()">Limpiar filtros</button>
+      </div>
+    </div>
+
+    <p class="feedback feedback--loading" *ngIf="loading">Consultando auditoria documental...</p>
+    <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+    <div class="table-shell" *ngIf="pagedItems().length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Documento</th>
+            <th>External ID</th>
+            <th>Transicion</th>
+            <th>Origen</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of pagedItems(); trackBy: trackByEvento">
+            <td>{{ formatValue(item.createdAt) }}</td>
+            <td>{{ formatLabel(item.tipoDocumento) }}</td>
+            <td>
+              <strong>{{ formatValue(item.numeroDocumento) }}</strong>
+              <small>{{ item.documentoUuid }}</small>
+            </td>
+            <td>{{ formatValue(item.externalId) }}</td>
+            <td>{{ formatLabel(item.estadoAnterior) }} -> {{ formatLabel(item.estadoNuevo) }}</td>
+            <td>{{ formatValue(item.origen) }}</td>
+            <td>{{ formatValue(item.descripcion) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" *ngIf="totalItems > 0">
+      <div class="pagination__meta">
+        <span>Pagina {{ totalItems === 0 ? 0 : currentPage + 1 }} de {{ totalPages }}</span>
+        <span>Mostrando {{ getRangeStart() }} - {{ getRangeEnd() }} de {{ totalItems }} registros</span>
+      </div>
+
+      <div class="pagination__size">
+        <span class="form-label">Filas por pagina</span>
+        <select [value]="pageSize" (change)="onSizeChange($event)">
+          <option *ngFor="let option of sizeOptions" [value]="option">{{ option }}</option>
+        </select>
+      </div>
+
+      <div class="pagination__actions">
+        <button type="button" class="ghost-button" (click)="onPageChange(currentPage - 1)" [disabled]="currentPage === 0">Anterior</button>
+        <button
+          *ngFor="let pageNumber of visiblePages()"
+          type="button"
+          class="page-button"
+          [class.page-button--active]="pageNumber === currentPage"
+          (click)="onPageChange(pageNumber)"
+        >
+          {{ pageNumber + 1 }}
+        </button>
+        <button type="button" class="ghost-button" (click)="onPageChange(currentPage + 1)" [disabled]="currentPage + 1 >= totalPages">Siguiente</button>
+      </div>
+    </div>
+  </article>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>Sin eventos disponibles</strong>
+    <p>Cuando existan transiciones recientes de documentos, se listaran aqui.</p>
+  </div>
+</ng-template>

@@ -3,6 +3,46 @@ export interface UsuarioAutenticado {
   nombre: string;
   correo: string;
   roles: string[];
+  permisos?: string[];
+}
+
+export interface PermisoSistema {
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  categoria: string;
+}
+
+export interface RolSistema {
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  permisos: string[];
+}
+
+export interface RolAuditoria {
+  accion: string;
+  descripcion: string;
+  actorUsername: string;
+  fecha: string;
+}
+
+export interface RolAuditoriaListadoItem {
+  id: number;
+  rolCodigo: string | null;
+  rolNombre: string | null;
+  accion: string;
+  descripcion: string;
+  actorUsername: string | null;
+  fecha: string;
+}
+
+export interface RolAuditoriaListadoResponse {
+  items: RolAuditoriaListadoItem[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
 }
 
 export interface LoginRequest {
@@ -46,4 +86,25 @@ export interface UsuarioAuditoria {
   descripcion: string;
   actorUsername: string;
   fecha: string;
+}
+
+export interface UsuarioAuditoriaListadoItem {
+  id: number;
+  usuarioId: string | null;
+  username: string | null;
+  nombre: string | null;
+  correo: string | null;
+  rol: string | null;
+  accion: string;
+  descripcion: string;
+  actorUsername: string | null;
+  fecha: string;
+}
+
+export interface UsuarioAuditoriaListadoResponse {
+  items: UsuarioAuditoriaListadoItem[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
 }

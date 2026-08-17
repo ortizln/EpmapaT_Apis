@@ -7,11 +7,12 @@ import { CompanyContextService } from '../../core/services/company-context.servi
 import { EmpresasService } from '../../core/services/empresas.service';
 import { Empresa, EmpresaConfiguracion, EmpresaConfiguracionRequest } from '../../models/empresa.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-configuracion-correo-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './configuracion-correo-page.component.html',
   styleUrl: './configuracion-correo-page.component.scss'
 })

@@ -12,11 +12,12 @@ import { Establecimiento } from '../../models/establecimiento.model';
 import { PuntoEmision } from '../../models/punto-emision.model';
 import { Secuencial } from '../../models/secuencial.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-secuenciales-page',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent],
+  imports: [CommonModule, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './secuenciales-page.component.html',
   styleUrl: './secuenciales-page.component.scss'
 })

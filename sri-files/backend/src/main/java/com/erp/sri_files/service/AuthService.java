@@ -20,6 +20,7 @@ import java.util.List;
 public class AuthService {
     private final UsuarioSistemaRepository usuarioSistemaRepository;
     private final PasswordHashService passwordHashService;
+    private final AccessControlService accessControlService;
 
     @Value("${sri-files.auth.secret:sri-files-dev-secret}")
     private String configuredSecret;
@@ -29,10 +30,12 @@ public class AuthService {
 
     public AuthService(
             UsuarioSistemaRepository usuarioSistemaRepository,
-            PasswordHashService passwordHashService
+            PasswordHashService passwordHashService,
+            AccessControlService accessControlService
     ) {
         this.usuarioSistemaRepository = usuarioSistemaRepository;
         this.passwordHashService = passwordHashService;
+        this.accessControlService = accessControlService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -100,11 +103,16 @@ public class AuthService {
     }
 
     private UsuarioAutenticadoResponse construirUsuario(UsuarioSistema usuario) {
+        List<String> roles = List.of(usuario.getRol());
         return new UsuarioAutenticadoResponse(
                 usuario.getUuid().toString(),
                 usuario.getNombre(),
                 usuario.getCorreo(),
-                List.of(usuario.getRol())
+                roles,
+                roles.stream()
+                        .flatMap(rol -> accessControlService.obtenerPermisosPorRol(rol).stream())
+                        .distinct()
+                        .toList()
         );
     }
 

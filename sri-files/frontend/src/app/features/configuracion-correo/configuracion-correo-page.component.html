@@ -6,7 +6,9 @@
   <article class="panel config-panel">
     <div class="panel__header"><div><h2>Empresas</h2><p>Selecciona la empresa sobre la cual deseas revisar o actualizar la configuracion.</p></div></div>
     <div class="company-list">
-      <button *ngFor="let empresa of empresas" type="button" class="company-chip" [class.company-chip--active]="empresaSeleccionada?.id === empresa.id" (click)="seleccionarEmpresa(empresa)">{{ empresa.razonSocial }}</button>
+      <ng-container *ngFor="let empresa of empresas">
+        <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="button" class="company-chip" [class.company-chip--active]="empresaSeleccionada?.id === empresa.id" (click)="seleccionarEmpresa(empresa)">{{ empresa.razonSocial }}</button>
+      </ng-container>
     </div>
   </article>
   <article class="panel config-panel">
@@ -27,8 +29,8 @@
       </div>
       <div class="form-actions">
         <button type="button" class="secondary-button" (click)="restaurar()" [disabled]="saving || !configuracion">Restaurar</button>
-        <button type="button" class="secondary-button secondary-button--danger" (click)="limpiarCertificadoActual()" [disabled]="saving || !empresaSeleccionada || !configuracion?.certificadoConfigurado">Limpiar certificado</button>
-        <button type="submit" [disabled]="saving || form.invalid || !empresaSeleccionada">{{ saving ? 'Guardando...' : 'Guardar configuracion' }}</button>
+        <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="button" class="secondary-button secondary-button--danger" (click)="limpiarCertificadoActual()" [disabled]="saving || !empresaSeleccionada || !configuracion?.certificadoConfigurado">Limpiar certificado</button>
+        <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="submit" [disabled]="saving || form.invalid || !empresaSeleccionada">{{ saving ? 'Guardando...' : 'Guardar configuracion' }}</button>
       </div>
     </form>
   </article>

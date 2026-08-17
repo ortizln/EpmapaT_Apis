@@ -1,0 +1,172 @@
+.workspace {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #dbe3ef;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
+}
+
+.panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 180px;
+}
+
+.filter-field span,
+.role-card p,
+td small {
+  color: #5f6f85;
+}
+
+.role-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.role-card {
+  border: 1px solid #dbe3ef;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.role-card__action {
+  margin-top: 1rem;
+}
+
+.role-card__code {
+  display: inline-flex;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: #e9f0f8;
+  color: #17324d;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.permission-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.permission-group {
+  border: 1px solid #e7edf5;
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.permission-group__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.table-shell {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e7edf5;
+  text-align: left;
+  vertical-align: top;
+}
+
+tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+  background: #f7fafc;
+}
+
+.permission-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.permission-pill--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.role-editor {
+  display: grid;
+  gap: 1rem;
+}
+
+.role-editor__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.role-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.editor-permissions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.permission-check {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border: 1px solid #e7edf5;
+  border-radius: 0.85rem;
+}
+
+.permission-check small {
+  color: #5f6f85;
+  display: block;
+  margin-top: 0.2rem;
+}
+
+textarea,
+input {
+  width: 100%;
+  border: 1px solid #c9d6e5;
+  border-radius: 0.85rem;
+  padding: 0.75rem 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .panel__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -7,7 +7,7 @@ import java.util.Map;
 
 public record DocumentoRecepcionRequest(
         @NotBlank String tipoDocumento,
-        String externalId,
+        @NotBlank String externalId,
         Map<String, Object> emisor,
         Map<String, Object> receptor,
         Map<String, Object> documento,

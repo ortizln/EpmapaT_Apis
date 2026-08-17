@@ -1,0 +1,24 @@
+{
+  "tipoDocumento": "RETENCION",
+  "externalId": "ERP-RET-001",
+  "emisor": {
+    "ruc": "1790012345001",
+    "establecimiento": "001",
+    "puntoEmision": "002",
+    "ambiente": "1"
+  },
+  "receptor": {
+    "identificacion": "1717171717",
+    "razonSocial": "Proveedor Demo",
+    "email": "proveedor@correo.com"
+  },
+  "documento": {
+    "fechaEmision": "2026-08-14",
+    "secuencial": "000000128",
+    "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><comprobanteRetencion id=\"comprobante\" version=\"1.0.0\"><infoTributaria><ambiente>1</ambiente><tipoEmision>1</tipoEmision><razonSocial>Empresa Demo</razonSocial><nombreComercial>Empresa Demo</nombreComercial><ruc>1790012345001</ruc><claveAcceso>140820260701790012345001001002000000128123456781</claveAcceso><codDoc>07</codDoc><estab>001</estab><ptoEmi>002</ptoEmi><secuencial>000000128</secuencial><dirMatriz>Tulcan</dirMatriz></infoTributaria><infoCompRetencion><fechaEmision>14/08/2026</fechaEmision><dirEstablecimiento>Tulcan</dirEstablecimiento><contribuyenteEspecial></contribuyenteEspecial><obligadoContabilidad>NO</obligadoContabilidad><tipoIdentificacionSujetoRetenido>04</tipoIdentificacionSujetoRetenido><razonSocialSujetoRetenido>Proveedor Demo</razonSocialSujetoRetenido><identificacionSujetoRetenido>1717171717</identificacionSujetoRetenido><periodoFiscal>08/2026</periodoFiscal></infoCompRetencion><impuestos><impuesto><codigo>2</codigo><codigoRetencion>1</codigoRetencion><baseImponible>100.00</baseImponible><porcentajeRetener>1.00</porcentajeRetener><valorRetenido>1.00</valorRetenido><codDocSustento>01</codDocSustento><numDocSustento>001002000000123</numDocSustento><fechaEmisionDocSustento>14/08/2026</fechaEmisionDocSustento></impuesto></impuestos></comprobanteRetencion>"
+  },
+  "correo": {
+    "enviar": false,
+    "destinatarios": []
+  }
+}

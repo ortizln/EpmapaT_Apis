@@ -6,6 +6,7 @@ public record UsuarioAutenticadoResponse(
         String id,
         String nombre,
         String correo,
-        List<String> roles
+        List<String> roles,
+        List<String> permisos
 ) {
 }

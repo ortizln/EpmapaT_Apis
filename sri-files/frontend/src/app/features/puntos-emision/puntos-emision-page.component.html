@@ -41,7 +41,7 @@
       <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
 
       <div class="actions">
-        <button type="submit" class="primary-button" [disabled]="saving">
+        <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="submit" class="primary-button" [disabled]="saving">
           {{ saving ? 'Guardando...' : editingId ? 'Actualizar punto' : 'Crear punto' }}
         </button>
         <button type="button" class="ghost-button" (click)="resetForm()" [disabled]="saving">
@@ -59,9 +59,11 @@
       </div>
       <div class="header-actions">
         <span class="panel-badge">{{ puntos.length }} puntos</span>
-        <button *ngIf="embedded()" type="button" class="primary-button" (click)="irANuevoPunto()">
-          Nuevo punto
-        </button>
+        <ng-container *ngIf="embedded()">
+          <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="button" class="primary-button" (click)="irANuevoPunto()">
+            Nuevo punto
+          </button>
+        </ng-container>
       </div>
     </div>
 
@@ -90,8 +92,8 @@
               </span>
             </td>
             <td class="actions-cell">
-              <button type="button" class="ghost-button" (click)="embedded() ? irAEditarPunto(punto) : editar(punto)">Editar</button>
-              <button type="button" class="ghost-button" (click)="cambiarEstado(punto)" [disabled]="savingStateId === punto.id">
+              <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="button" class="ghost-button" (click)="embedded() ? irAEditarPunto(punto) : editar(punto)">Editar</button>
+              <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="button" class="ghost-button" (click)="cambiarEstado(punto)" [disabled]="savingStateId === punto.id">
                 {{ savingStateId === punto.id ? 'Procesando...' : punto.activo ? 'Desactivar' : 'Activar' }}
               </button>
             </td>

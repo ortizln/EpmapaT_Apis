@@ -27,6 +27,9 @@ public class DocumentoRideService {
         if (documento.getTipoDocumento() == TipoDocumento.RETENCION) {
             return retencionPdfService.generarPdfDesdeXmlAutorizado(xmlAutorizado);
         }
+        if (documento.getTipoDocumento() == TipoDocumento.LIQUIDACION_COMPRA) {
+            return basicPdfDocumentService.generarDesdeXml("Liquidacion de compra autorizada", xmlAutorizado);
+        }
         if (documento.getTipoDocumento() == TipoDocumento.NOTA_CREDITO) {
             return basicPdfDocumentService.generarNotaCreditoDesdeXml(xmlAutorizado);
         }

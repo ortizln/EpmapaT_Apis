@@ -4,6 +4,7 @@ import com.erp.sri_files.dto.response.DocumentoAutorizacionConsultaResponse;
 import com.erp.sri_files.dto.request.DocumentoRecepcionRequest;
 import com.erp.sri_files.dto.response.DocumentoDetalleResponse;
 import com.erp.sri_files.dto.response.DocumentoAutorizacionManualResponse;
+import com.erp.sri_files.dto.response.DocumentoAuditoriaResumenResponse;
 import com.erp.sri_files.dto.response.DocumentoCorreoSeguimientoResponse;
 import com.erp.sri_files.dto.response.DocumentoCorreoReenvioResponse;
 import com.erp.sri_files.dto.response.DocumentoEstadoResponse;
@@ -65,6 +66,10 @@ public class DocumentoApplicationService {
 
     public List<DocumentoHistorialItemResponse> obtenerHistorial(UUID uuid) {
         return documentoConsultaService.obtenerHistorial(uuid);
+    }
+
+    public DocumentoAuditoriaResumenResponse obtenerAuditoriaReciente() {
+        return documentoConsultaService.obtenerAuditoriaReciente();
     }
 
     public List<DocumentoErrorItemResponse> obtenerErrores(UUID uuid) {

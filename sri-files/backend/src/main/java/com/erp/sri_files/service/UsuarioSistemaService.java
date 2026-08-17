@@ -6,6 +6,8 @@ import com.erp.sri_files.dto.request.UsuarioCrearRequest;
 import com.erp.sri_files.dto.request.UsuarioEstadoRequest;
 import com.erp.sri_files.dto.request.UsuarioPasswordResetRequest;
 import com.erp.sri_files.dto.response.UsuarioAutenticadoResponse;
+import com.erp.sri_files.dto.response.UsuarioAuditoriaListadoItemResponse;
+import com.erp.sri_files.dto.response.UsuarioAuditoriaListadoResponse;
 import com.erp.sri_files.dto.response.UsuarioAuditoriaResponse;
 import com.erp.sri_files.dto.response.UsuarioSistemaListadoResponse;
 import com.erp.sri_files.dto.response.UsuarioSistemaResponse;
@@ -141,6 +143,34 @@ public class UsuarioSistemaService {
                         item.getCreatedAt().toString()
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public UsuarioAuditoriaListadoResponse listarAuditoriaReciente(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<UsuarioAuditoria> auditoria = usuarioAuditoriaRepository.findAllByOrderByCreatedAtDesc(pageable);
+
+        return new UsuarioAuditoriaListadoResponse(
+                auditoria.getContent().stream().map(item -> {
+                    UsuarioSistema usuario = item.getUsuario();
+                    return new UsuarioAuditoriaListadoItemResponse(
+                            item.getId(),
+                            usuario != null && usuario.getUuid() != null ? usuario.getUuid().toString() : null,
+                            usuario != null ? usuario.getUsername() : null,
+                            usuario != null ? usuario.getNombre() : null,
+                            usuario != null ? usuario.getCorreo() : null,
+                            usuario != null ? usuario.getRol() : null,
+                            item.getAccion(),
+                            item.getDescripcion(),
+                            item.getActorUsername(),
+                            item.getCreatedAt().toString()
+                    );
+                }).toList(),
+                auditoria.getNumber(),
+                auditoria.getSize(),
+                auditoria.getTotalElements(),
+                auditoria.getTotalPages()
+        );
     }
 
     private UsuarioSistema buscarPorUuid(UUID uuid) {

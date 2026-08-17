@@ -1,0 +1,142 @@
+<app-page-header eyebrow="Control" title="Monitoreo operativo" description="Estado general del backend, volumen documental y componentes criticos del flujo." badge="Backend real" />
+
+<section class="workspace">
+  <div class="header-actions">
+    <span class="refresh-badge">
+      {{ autoRefreshEnabled() ? 'Auto-refresh cada ' + refreshIntervalSeconds + 's' : 'Auto-refresh pausado' }}
+    </span>
+    <button type="button" class="ghost-button" (click)="toggleAutoRefresh()">
+      {{ autoRefreshEnabled() ? 'Pausar auto-refresh' : 'Activar auto-refresh' }}
+    </button>
+    <button type="button" class="ghost-button" (click)="cargar()" [disabled]="loading">
+      {{ loading ? 'Actualizando...' : 'Actualizar estado' }}
+    </button>
+  </div>
+
+  <p class="feedback feedback--loading" *ngIf="loading">Consultando salud del sistema...</p>
+  <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+  <ng-container *ngIf="health as data">
+    <section class="metrics" *ngIf="resumen as resumenData">
+      <article class="metric-card">
+        <span>Total documentos</span>
+        <strong>{{ resumenData.totalDocumentos }}</strong>
+        <p>Volumen consolidado del flujo documental.</p>
+      </article>
+      <article class="metric-card metric-card--warning">
+        <span>Pendientes proceso</span>
+        <strong>{{ resumenData.pendientesProcesamiento }}</strong>
+        <p>Documentos que aun no completan procesamiento interno.</p>
+      </article>
+      <article class="metric-card metric-card--warning">
+        <span>Pendientes SRI</span>
+        <strong>{{ resumenData.pendientesAutorizacion }}</strong>
+        <p>Casos esperando autorizacion o respuesta del SRI.</p>
+      </article>
+      <article class="metric-card">
+        <span>Pendientes correo</span>
+        <strong>{{ resumenData.pendientesCorreo }}</strong>
+        <p>Documentos listos con envio de correo aun pendiente.</p>
+      </article>
+      <article class="metric-card metric-card--danger">
+        <span>Con error</span>
+        <strong>{{ resumenData.conError }}</strong>
+        <p>Incidencias que requieren seguimiento operativo.</p>
+      </article>
+      <article class="metric-card metric-card--success">
+        <span>Finalizados</span>
+        <strong>{{ resumenData.finalizados }}</strong>
+        <p>Flujos completados con exito de extremo a extremo.</p>
+      </article>
+    </section>
+
+    <section class="panel panel--summary">
+      <div>
+        <h2>Estado general</h2>
+        <p>Lectura inmediata de la salud del backend reportada por el endpoint de monitoreo.</p>
+      </div>
+      <div class="summary-state">
+        <span [class]="getEstadoClass(data.estado)">{{ formatEstado(data.estado) }}</span>
+        <small>Actualizado: {{ data.timestamp }}</small>
+        <small>Modo: {{ autoRefreshEnabled() ? 'seguimiento automatico' : 'manual' }}</small>
+      </div>
+    </section>
+
+    <section class="panel panel--table">
+      <div class="panel__header">
+        <div>
+          <h2>Componentes monitoreados</h2>
+          <p>Estado de los elementos principales del circuito documental.</p>
+        </div>
+      </div>
+
+      <div class="table-shell" *ngIf="data.componentes.length; else emptyState">
+        <table>
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Estado</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let componente of data.componentes">
+              <td>{{ componente.nombre }}</td>
+              <td><span [class]="getEstadoClass(componente.estado)">{{ formatEstado(componente.estado) }}</span></td>
+              <td>{{ componente.detalle || 'Sin detalle adicional' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel panel--table">
+      <div class="panel__header">
+        <div>
+          <h2>Procesos pendientes</h2>
+          <p>Documentos en curso o esperando autorizacion que requieren seguimiento operativo.</p>
+        </div>
+      </div>
+
+      <div class="table-shell" *ngIf="pendientes.length; else emptyPendingState">
+        <table>
+          <thead>
+            <tr>
+              <th>Documento</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Intentos</th>
+              <th>Recepcion</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of pendientes">
+              <td>
+                <strong>{{ item.numeroDocumento || 'Sin numero' }}</strong>
+                <small>{{ item.razonSocial || 'Sin receptor' }}</small>
+              </td>
+              <td>{{ item.tipoDocumento }}</td>
+              <td><span [class]="getEstadoClass(item.estado)">{{ formatEstado(item.estado) }}</span></td>
+              <td>{{ item.intentos }}</td>
+              <td>{{ item.fechaRecepcion || 'Sin fecha' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>Sin componentes reportados</strong>
+    <p>Cuando el backend publique el detalle de componentes, se mostrara en esta tabla.</p>
+  </div>
+</ng-template>
+
+<ng-template #emptyPendingState>
+  <div class="empty-state">
+    <strong>Sin procesos pendientes</strong>
+    <p>Cuando existan documentos en curso o esperando autorizacion, se mostraran aqui.</p>
+  </div>
+</ng-template>

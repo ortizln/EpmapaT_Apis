@@ -4,6 +4,7 @@ import com.erp.sri_files.dto.request.UsuarioCrearRequest;
 import com.erp.sri_files.dto.request.UsuarioEstadoRequest;
 import com.erp.sri_files.dto.request.UsuarioPasswordResetRequest;
 import com.erp.sri_files.dto.response.UsuarioAutenticadoResponse;
+import com.erp.sri_files.dto.response.UsuarioAuditoriaListadoResponse;
 import com.erp.sri_files.dto.response.UsuarioAuditoriaResponse;
 import com.erp.sri_files.dto.response.UsuarioSistemaListadoResponse;
 import com.erp.sri_files.dto.response.UsuarioSistemaResponse;
@@ -48,6 +49,14 @@ public class UsuarioController {
     @GetMapping("/{uuid}/auditoria")
     public ResponseEntity<List<UsuarioAuditoriaResponse>> obtenerAuditoria(@PathVariable UUID uuid) {
         return ResponseEntity.ok(usuarioSistemaService.obtenerAuditoria(uuid));
+    }
+
+    @GetMapping("/auditoria-reciente")
+    public ResponseEntity<UsuarioAuditoriaListadoResponse> obtenerAuditoriaReciente(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(usuarioSistemaService.listarAuditoriaReciente(page, size));
     }
 
     @PostMapping

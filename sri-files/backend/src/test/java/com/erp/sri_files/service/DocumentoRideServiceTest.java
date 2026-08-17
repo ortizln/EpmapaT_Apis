@@ -50,6 +50,24 @@ class DocumentoRideServiceTest {
     }
 
     @Test
+    void usaPdfBasicoParaLiquidacionCompra() throws Exception {
+        RideService rideService = mock(RideService.class);
+        RetencionPdfService retencionPdfService = mock(RetencionPdfService.class);
+        BasicPdfDocumentService basicPdfDocumentService = mock(BasicPdfDocumentService.class);
+        DocumentoRideService service = new DocumentoRideService(rideService, retencionPdfService, basicPdfDocumentService);
+
+        DocumentoElectronico documento = new DocumentoElectronico();
+        documento.setTipoDocumento(TipoDocumento.LIQUIDACION_COMPRA);
+        byte[] expected = new byte[]{7, 7, 7};
+        when(basicPdfDocumentService.generarDesdeXml("Liquidacion de compra autorizada", "<xml-liquidacion/>")).thenReturn(expected);
+
+        byte[] result = service.generar(documento, "<xml-liquidacion/>");
+
+        assertArrayEquals(expected, result);
+        verify(basicPdfDocumentService).generarDesdeXml("Liquidacion de compra autorizada", "<xml-liquidacion/>");
+    }
+
+    @Test
     void usaPdfEspecializadoParaNotaDebito() throws Exception {
         RideService rideService = mock(RideService.class);
         RetencionPdfService retencionPdfService = mock(RetencionPdfService.class);

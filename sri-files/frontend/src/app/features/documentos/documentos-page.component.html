@@ -4,7 +4,7 @@
   description="Bandeja de documentos registrados en la plataforma y consulta de seguimiento por UUID."
   badge="Recepcion operativa"
 >
-  <button type="button" (click)="irANuevoDocumento()">Nuevo documento</button>
+  <button *appHasPermission="'DOCUMENTO_CREAR'" type="button" (click)="irANuevoDocumento()">Nuevo documento</button>
 </app-page-header>
 
 <section class="document-tabs">
@@ -29,6 +29,7 @@
     <span class="document-tab__subtitle">{{ tab.subtitle }}</span>
     <span class="document-tab__actions">
       <button
+        *appHasPermission="'DOCUMENTO_VER'"
         type="button"
         class="document-tab__link"
         (click)="abrirModulo(tab.route, $event)"

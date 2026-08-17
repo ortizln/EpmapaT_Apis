@@ -88,6 +88,7 @@
         </div>
 
         <button
+          *appHasPermission="'DOCUMENTO_AUTORIZACION_CONSULTAR'"
           type="button"
           class="secondary-button"
           (click)="consultarAutorizacionManual()"
@@ -122,6 +123,7 @@
         </div>
 
         <button
+          *appHasPermission="'DOCUMENTO_AUTORIZACION_CONSULTAR'"
           type="button"
           class="secondary-button"
           (click)="consultarAutorizacionPorClave()"
@@ -187,6 +189,7 @@
           </div>
 
           <button
+            *appHasPermission="'DOCUMENTO_AUTORIZACION_CONSULTAR'"
             type="button"
             class="secondary-button"
             (click)="consultarXmlAutorizado()"
@@ -206,9 +209,9 @@
             </div>
 
             <div class="xml-card__actions">
-              <button type="button" class="secondary-button" (click)="xmlModalOpen.set(true)">Ver ampliado</button>
-              <button type="button" class="secondary-button" (click)="copiarXmlAutorizado()">Copiar XML</button>
-              <button type="button" class="secondary-button" (click)="descargarXmlAutorizado()">Descargar XML</button>
+              <button *appHasPermission="'DOCUMENTO_VER'" type="button" class="secondary-button" (click)="xmlModalOpen.set(true)">Ver ampliado</button>
+              <button *appHasPermission="'DOCUMENTO_VER'" type="button" class="secondary-button" (click)="copiarXmlAutorizado()">Copiar XML</button>
+              <button *appHasPermission="'DOCUMENTO_VER'" type="button" class="secondary-button" (click)="descargarXmlAutorizado()">Descargar XML</button>
             </div>
           </div>
           <div class="xml-card__summary">
@@ -350,6 +353,7 @@
           </div>
 
           <button
+            *appHasPermission="'DOCUMENTO_CORREO_REENVIAR'"
             type="button"
             class="secondary-button"
             (click)="reenviarCorreoDocumento()"

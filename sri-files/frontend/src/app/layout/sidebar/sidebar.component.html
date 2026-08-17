@@ -52,10 +52,11 @@
       </a>
     </section>
 
-    <section class="menu__group" *ngIf="authStore.usuario()?.roles?.includes('ADMIN')">
+    <section class="menu__group" *ngIf="accessControl.hasPermission('CATALOGO_ADMINISTRAR') || accessControl.hasPermission('USUARIO_VER') || accessControl.hasPermission('CERTIFICADO_ADMINISTRAR') || accessControl.hasPermission('CONFIGURACION_CORREO_ADMINISTRAR') || accessControl.hasPermission('ROL_VER')">
       <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">Administracion</p>
 
       <a
+        *ngIf="accessControl.hasPermission('CATALOGO_ADMINISTRAR')"
         routerLink="/catalogos"
         routerLinkActive="active"
         [attr.title]="ui.sidebarCollapsed() ? 'Catalogos operativos' : null"
@@ -65,6 +66,7 @@
         <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Catalogos operativos</span>
       </a>
       <a
+        *ngIf="accessControl.hasPermission('USUARIO_VER')"
         routerLink="/usuarios"
         routerLinkActive="active"
         [attr.title]="ui.sidebarCollapsed() ? 'Usuarios' : null"
@@ -74,6 +76,17 @@
         <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Usuarios</span>
       </a>
       <a
+        *ngIf="accessControl.hasPermission('ROL_VER')"
+        routerLink="/seguridad/roles"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Roles y permisos' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">S</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Roles y permisos</span>
+      </a>
+      <a
+        *ngIf="accessControl.hasPermission('CERTIFICADO_ADMINISTRAR')"
         routerLink="/administracion/certificados"
         routerLinkActive="active"
         [attr.title]="ui.sidebarCollapsed() ? 'Certificados' : null"
@@ -83,6 +96,7 @@
         <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Certificados</span>
       </a>
       <a
+        *ngIf="accessControl.hasPermission('CONFIGURACION_CORREO_ADMINISTRAR')"
         routerLink="/administracion/configuracion-correo"
         routerLinkActive="active"
         [attr.title]="ui.sidebarCollapsed() ? 'Correo' : null"
@@ -93,10 +107,11 @@
       </a>
     </section>
 
-    <section class="menu__group" *ngIf="authStore.usuario()?.roles?.includes('ADMIN')">
+    <section class="menu__group" *ngIf="accessControl.hasPermission('CONTROL_ERRORES_VER') || accessControl.hasPermission('CONTROL_CORREOS_VER') || accessControl.hasPermission('MONITOREO_VER') || accessControl.hasPermission('DOCUMENTO_AUDITORIA_VER') || accessControl.hasPermission('USUARIO_AUDITORIA_VER') || accessControl.hasPermission('ROL_AUDITORIA_VER') || accessControl.hasPermission('EMPRESA_AUDITORIA_VER')">
       <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">Control</p>
 
       <a
+        *ngIf="accessControl.hasPermission('CONTROL_ERRORES_VER')"
         routerLink="/control/errores"
         routerLinkActive="active"
         [attr.title]="ui.sidebarCollapsed() ? 'Errores' : null"
@@ -106,6 +121,7 @@
         <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Errores</span>
       </a>
       <a
+        *ngIf="accessControl.hasPermission('CONTROL_CORREOS_VER')"
         routerLink="/control/correos"
         routerLinkActive="active"
         [attr.title]="ui.sidebarCollapsed() ? 'Control de correos' : null"
@@ -113,6 +129,56 @@
       >
         <span class="menu__icon">M</span>
         <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Control correos</span>
+      </a>
+      <a
+        *ngIf="accessControl.hasPermission('MONITOREO_VER')"
+        routerLink="/control/monitoreo"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Monitoreo' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">O</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Monitoreo</span>
+      </a>
+      <a
+        *ngIf="accessControl.hasPermission('DOCUMENTO_AUDITORIA_VER')"
+        routerLink="/control/auditoria-documentos"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Auditoria documental' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">A</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Auditoria documentos</span>
+      </a>
+      <a
+        *ngIf="accessControl.hasPermission('USUARIO_AUDITORIA_VER')"
+        routerLink="/control/auditoria-usuarios"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Auditoria de usuarios' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">U</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Auditoria usuarios</span>
+      </a>
+      <a
+        *ngIf="accessControl.hasPermission('ROL_AUDITORIA_VER')"
+        routerLink="/control/auditoria-roles"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Auditoria de roles' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">R</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Auditoria roles</span>
+      </a>
+      <a
+        *ngIf="accessControl.hasPermission('EMPRESA_AUDITORIA_VER')"
+        routerLink="/control/auditoria-empresas"
+        routerLinkActive="active"
+        [attr.title]="ui.sidebarCollapsed() ? 'Auditoria de empresas' : null"
+        (click)="ui.closeMobileSidebar()"
+      >
+        <span class="menu__icon">E</span>
+        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Auditoria empresas</span>
       </a>
     </section>
   </nav>

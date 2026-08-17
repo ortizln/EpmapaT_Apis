@@ -1,0 +1,41 @@
+{
+  "folders": [
+    {
+      "name": "backend",
+      "path": "backend"
+    },
+    {
+      "name": "frontend",
+      "path": "frontend"
+    },
+    {
+      "name": "docs",
+      "path": "MD"
+    }
+  ],
+  "settings": {
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.maven.enabled": true,
+    "java.debug.settings.onBuildFailureProceed": true,
+    "files.exclude": {
+      "**/backend/target": true,
+      "**/frontend/dist": true
+    },
+    "search.exclude": {
+      "**/backend/target": true,
+      "**/frontend/dist": true
+    }
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "java",
+        "name": "SRI Files Backend",
+        "request": "launch",
+        "mainClass": "com.erp.sri_files.SriFilesApplication",
+        "cwd": "${workspaceFolder:backend}"
+      }
+    ]
+  }
+}

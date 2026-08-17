@@ -3,9 +3,15 @@ package com.erp.sri_files.controller;
 import com.erp.sri_files.dto.request.EmpresaConfiguracionRequest;
 import com.erp.sri_files.dto.request.EmpresaEstadoRequest;
 import com.erp.sri_files.dto.request.EmpresaRequest;
+import com.erp.sri_files.dto.response.EmpresaAuditoriaListadoItemResponse;
+import com.erp.sri_files.dto.response.EmpresaAuditoriaListadoResponse;
+import com.erp.sri_files.dto.response.EmpresaAuditoriaResponse;
 import com.erp.sri_files.dto.response.EmpresaConfiguracionResponse;
+import com.erp.sri_files.dto.response.EmpresaListadoResponse;
 import com.erp.sri_files.dto.response.EmpresaResponse;
+import com.erp.sri_files.dto.response.UsuarioAutenticadoResponse;
 import com.erp.sri_files.exceptions.GlobalExceptionHandler;
+import com.erp.sri_files.service.AuthService;
 import com.erp.sri_files.service.EmpresaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,10 +46,12 @@ class EmpresaControllerTest {
 
     @Mock
     private EmpresaService empresaService;
+    @Mock
+    private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        EmpresaController controller = new EmpresaController(empresaService);
+        EmpresaController controller = new EmpresaController(empresaService, authService);
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -55,13 +63,18 @@ class EmpresaControllerTest {
 
     @Test
     void listaEmpresas() throws Exception {
-        when(empresaService.listar()).thenReturn(List.of(
-                new EmpresaResponse("uuid-1", "0460028810001", "Empresa Demo", "EPMAPA-T", "Tulcan", true, null, 1, "facturacion@demo.ec", false, true)
+        when(empresaService.listar(0, 10)).thenReturn(new EmpresaListadoResponse(
+                List.of(new EmpresaResponse("uuid-1", "0460028810001", "Empresa Demo", "EPMAPA-T", "Tulcan", true, null, 1, "facturacion@demo.ec", false, true)),
+                0,
+                10,
+                1,
+                1
         ));
 
         mockMvc.perform(get("/api/v1/empresas"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].ruc").value("0460028810001"));
+                .andExpect(jsonPath("$.items[0].ruc").value("0460028810001"))
+                .andExpect(jsonPath("$.totalItems").value(1));
     }
 
     @Test
@@ -79,10 +92,13 @@ class EmpresaControllerTest {
     void creaEmpresa() throws Exception {
         EmpresaRequest request = new EmpresaRequest("0460028810001", "Empresa Demo", "EPMAPA-T", "Tulcan", true, "");
 
-        when(empresaService.crear(any()))
+        when(authService.obtenerUsuarioDesdeToken("token-demo"))
+                .thenReturn(new UsuarioAutenticadoResponse("1", "Admin", "admin@sri.local", List.of("ADMIN"), List.of("CATALOGO_ADMINISTRAR")));
+        when(empresaService.crear(any(), any()))
                 .thenReturn(new EmpresaResponse("uuid-1", "0460028810001", "Empresa Demo", "EPMAPA-T", "Tulcan", true, null, 1, "facturacion@demo.ec", false, true));
 
         mockMvc.perform(post("/api/v1/empresas")
+                        .header("Authorization", "Bearer token-demo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -94,10 +110,13 @@ class EmpresaControllerTest {
         UUID uuid = UUID.randomUUID();
         EmpresaRequest request = new EmpresaRequest("0460028810001", "Empresa Actualizada", "EPMAPA-T", "Tulcan", false, "123");
 
-        when(empresaService.actualizar(eq(uuid), any()))
+        when(authService.obtenerUsuarioDesdeToken("token-demo"))
+                .thenReturn(new UsuarioAutenticadoResponse("1", "Admin", "admin@sri.local", List.of("ADMIN"), List.of("CATALOGO_ADMINISTRAR")));
+        when(empresaService.actualizar(eq(uuid), any(), any()))
                 .thenReturn(new EmpresaResponse(uuid.toString(), "0460028810001", "Empresa Actualizada", "EPMAPA-T", "Tulcan", false, "123", 2, "facturacion@demo.ec", true, true));
 
         mockMvc.perform(put("/api/v1/empresas/{uuid}", uuid)
+                        .header("Authorization", "Bearer token-demo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -108,10 +127,13 @@ class EmpresaControllerTest {
     void actualizaEstadoEmpresa() throws Exception {
         UUID uuid = UUID.randomUUID();
 
-        when(empresaService.actualizarEstado(eq(uuid), any()))
+        when(authService.obtenerUsuarioDesdeToken("token-demo"))
+                .thenReturn(new UsuarioAutenticadoResponse("1", "Admin", "admin@sri.local", List.of("ADMIN"), List.of("CATALOGO_ADMINISTRAR")));
+        when(empresaService.actualizarEstado(eq(uuid), any(), any()))
                 .thenReturn(new EmpresaResponse(uuid.toString(), "0460028810001", "Empresa Demo", "EPMAPA-T", "Tulcan", true, null, 1, "facturacion@demo.ec", false, false));
 
         mockMvc.perform(patch("/api/v1/empresas/{uuid}/estado", uuid)
+                        .header("Authorization", "Bearer token-demo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new EmpresaEstadoRequest(false))))
                 .andExpect(status().isOk())
@@ -154,7 +176,9 @@ class EmpresaControllerTest {
                 false
         );
 
-        when(empresaService.actualizarConfiguracion(eq(uuid), any()))
+        when(authService.obtenerUsuarioDesdeToken("token-demo"))
+                .thenReturn(new UsuarioAutenticadoResponse("1", "Admin", "admin@sri.local", List.of("ADMIN"), List.of("CONFIGURACION_CORREO_ADMINISTRAR")));
+        when(empresaService.actualizarConfiguracion(eq(uuid), any(), any()))
                 .thenReturn(new EmpresaConfiguracionResponse(
                         uuid.toString(),
                         2,
@@ -169,10 +193,53 @@ class EmpresaControllerTest {
                 ));
 
         mockMvc.perform(put("/api/v1/empresas/{uuid}/configuracion", uuid)
+                        .header("Authorization", "Bearer token-demo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.correoNotificaciones").value("facturacion@epmapa.ec"))
                 .andExpect(jsonPath("$.certificadoNombre").value("firma.p12"));
+    }
+
+    @Test
+    void obtieneAuditoriaRecienteEmpresas() throws Exception {
+        when(empresaService.listarAuditoriaReciente(0, 10)).thenReturn(new EmpresaAuditoriaListadoResponse(
+                List.of(new EmpresaAuditoriaListadoItemResponse(
+                        1L,
+                        "uuid-1",
+                        "0460028810001",
+                        "Empresa Demo",
+                        "EMPRESA_CONFIGURACION_ACTUALIZADA",
+                        "Configuracion sensible actualizada",
+                        "Admin",
+                        "2026-08-17T10:00:00"
+                )),
+                0,
+                10,
+                1,
+                1
+        ));
+
+        mockMvc.perform(get("/api/v1/empresas/auditoria-reciente"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].ruc").value("0460028810001"))
+                .andExpect(jsonPath("$.items[0].accion").value("EMPRESA_CONFIGURACION_ACTUALIZADA"));
+    }
+
+    @Test
+    void obtieneAuditoriaPorEmpresa() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(empresaService.obtenerAuditoria(uuid)).thenReturn(List.of(
+                new EmpresaAuditoriaResponse(
+                        "EMPRESA_ACTUALIZADA",
+                        "Empresa Demo actualizada",
+                        "Admin",
+                        "2026-08-17T10:00:00"
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/empresas/{uuid}/auditoria", uuid))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].accion").value("EMPRESA_ACTUALIZADA"));
     }
 }

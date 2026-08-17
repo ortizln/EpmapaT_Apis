@@ -7,11 +7,12 @@ import { DocumentoContratoService } from '../../core/services/documento-contrato
 import { DocumentoListadoResponse, DocumentoResumen, TipoDocumento } from '../../models/documento.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { DocumentosRecientesTableComponent } from './documentos-recientes-table.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-documentos-tipo-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeaderComponent, DocumentosRecientesTableComponent],
+  imports: [CommonModule, RouterLink, PageHeaderComponent, DocumentosRecientesTableComponent, HasPermissionDirective],
   templateUrl: './documentos-tipo-page.component.html'
 })
 export class DocumentosTipoPageComponent {

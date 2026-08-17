@@ -1,0 +1,66 @@
+<app-page-header eyebrow="Control" title="Auditoria de empresas" description="Seguimiento de cambios administrativos sobre empresas, estados y configuraciones sensibles de SRI y correo." badge="Backend real" />
+
+<section class="workspace">
+  <p class="feedback feedback--loading" *ngIf="loading">Consultando auditoria de empresas...</p>
+  <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+  <article class="panel">
+    <div class="panel__header">
+      <div>
+        <h2>Eventos recientes</h2>
+        <p>Actividad registrada sobre datos maestros de empresa, estado operativo y configuracion sensible.</p>
+      </div>
+      <div class="pagination__size">
+        <span class="form-label">Filas por pagina</span>
+        <select [value]="size" (change)="onSizeChange($event)">
+          <option *ngFor="let option of sizeOptions" [value]="option">{{ option }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-shell" *ngIf="items.length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>Accion</th>
+            <th>Descripcion</th>
+            <th>Actor</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of items">
+            <td>
+              <strong>{{ formatValue(item.razonSocial) }}</strong>
+              <small>{{ formatValue(item.ruc) }}</small>
+            </td>
+            <td><span class="status-pill">{{ item.accion }}</span></td>
+            <td>{{ item.descripcion }}</td>
+            <td>{{ formatValue(item.actorUsername) }}</td>
+            <td>{{ item.fecha }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" *ngIf="totalItems > 0">
+      <div class="pagination__meta">
+        <span>Pagina {{ totalItems === 0 ? 0 : page + 1 }} de {{ totalPages }}</span>
+        <span>Mostrando {{ getRangeStart() }} - {{ getRangeEnd() }} de {{ totalItems }} registros</span>
+      </div>
+      <div class="pagination__actions">
+        <button type="button" class="secondary-button" (click)="onPageChange(page - 1)" [disabled]="page === 0">Anterior</button>
+        <button *ngFor="let pageNumber of visiblePages()" type="button" class="page-button" [class.page-button--active]="pageNumber === page" (click)="onPageChange(pageNumber)">{{ pageNumber + 1 }}</button>
+        <button type="button" class="secondary-button" (click)="onPageChange(page + 1)" [disabled]="page + 1 >= totalPages">Siguiente</button>
+      </div>
+    </div>
+  </article>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>Sin auditoria disponible</strong>
+    <p>Los cambios sobre empresas y configuraciones administrativas apareceran aqui cuando existan operaciones registradas.</p>
+  </div>
+</ng-template>

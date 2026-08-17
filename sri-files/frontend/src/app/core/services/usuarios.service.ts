@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { UsuarioAuditoria, UsuarioCrearRequest, UsuarioSistema, UsuarioSistemaListadoResponse } from '../../models/auth.model';
+import { UsuarioAuditoria, UsuarioAuditoriaListadoResponse, UsuarioCrearRequest, UsuarioSistema, UsuarioSistemaListadoResponse } from '../../models/auth.model';
 
 @Injectable({
   providedIn: 'root'
@@ -29,5 +29,9 @@ export class UsuariosService {
 
   obtenerAuditoria(id: string): Observable<UsuarioAuditoria[]> {
     return this.http.get<UsuarioAuditoria[]>(`${this.apiUrl}/${id}/auditoria`);
+  }
+
+  obtenerAuditoriaReciente(page = 0, size = 10): Observable<UsuarioAuditoriaListadoResponse> {
+    return this.http.get<UsuarioAuditoriaListadoResponse>(`${this.apiUrl}/auditoria-reciente?page=${page}&size=${size}`);
   }
 }

@@ -55,7 +55,7 @@ class AuthControllerTest {
         when(authService.login(any())).thenReturn(new LoginResponse(
                 "token-demo",
                 "refresh-demo",
-                new UsuarioAutenticadoResponse("1", "Administrador SRI Files", "admin@sri-files.local", List.of("ADMIN"))
+                new UsuarioAutenticadoResponse("1", "Administrador SRI Files", "admin@sri-files.local", List.of("ADMIN"), List.of("ROL_VER", "USUARIO_VER"))
         ));
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -78,12 +78,13 @@ class AuthControllerTest {
     @Test
     void meRetornaUsuarioAutenticado() throws Exception {
         when(authService.obtenerUsuarioDesdeToken("token-demo"))
-                .thenReturn(new UsuarioAutenticadoResponse("1", "Administrador SRI Files", "admin@sri-files.local", List.of("ADMIN")));
+                .thenReturn(new UsuarioAutenticadoResponse("1", "Administrador SRI Files", "admin@sri-files.local", List.of("ADMIN"), List.of("ROL_VER", "USUARIO_VER")));
 
         mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer token-demo"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.correo").value("admin@sri-files.local"));
+                .andExpect(jsonPath("$.correo").value("admin@sri-files.local"))
+                .andExpect(jsonPath("$.permisos[0]").value("ROL_VER"));
     }
 
     @Test

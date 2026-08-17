@@ -8,11 +8,12 @@ import { AppAlertService } from '../../core/services/app-alert.service';
 import { UsuariosService } from '../../core/services/usuarios.service';
 import { UsuarioSistema } from '../../models/auth.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-usuario-form-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './usuario-form-page.component.html',
   styleUrl: './usuarios-page.component.scss'
 })

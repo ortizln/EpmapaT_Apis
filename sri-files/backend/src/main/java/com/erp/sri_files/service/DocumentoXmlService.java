@@ -41,6 +41,9 @@ public class DocumentoXmlService {
             if (documento.getTipoDocumento() == TipoDocumento.FACTURA) {
                 return facturaXmlGeneratorService.generarXmlFactura(mapearFactura(documento));
             }
+            if (documento.getTipoDocumento() == TipoDocumento.LIQUIDACION_COMPRA) {
+                return generarLiquidacionCompra(documento);
+            }
             if (documento.getTipoDocumento() == TipoDocumento.NOTA_CREDITO) {
                 return generarNotaCredito(documento);
             }
@@ -61,6 +64,82 @@ public class DocumentoXmlService {
         } catch (Exception ex) {
             throw new DocumentoRecepcionException("No se pudo generar el XML del documento");
         }
+    }
+
+    private String generarLiquidacionCompra(DocumentoElectronico documento) throws Exception {
+        JsonNode root = objectMapper.readTree(documento.getJsonOriginal());
+        String claveAcceso = ensureClaveAcceso(documento);
+        String ruc = safe(documento.getEmpresa().getRuc(), "9999999999999");
+        String razonSocial = escape(readText(root, "/emisor/razonSocial", null, documento.getEmpresa().getRazonSocial()));
+        String nombreComercial = escape(readText(root, "/emisor/nombreComercial", null, documento.getEmpresa().getNombreComercial()));
+        String dirMatriz = escape(readText(root, "/emisor/direccionMatriz", null, documento.getEmpresa().getDireccionMatriz()));
+        String fechaEmision = documento.getFechaEmision().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String dirEstablecimiento = escape(readText(root, "/emisor/direccionEstablecimiento", null, "NA"));
+        String tipoIdentificacionProveedor = escape(readText(root, "/receptor/tipoIdentificacion", null, "04"));
+        String identificacionProveedor = escape(readText(root, "/receptor/identificacion", documento.getIdentificacionReceptor(), "9999999999999"));
+        String razonSocialProveedor = escape(readText(root, "/receptor/razonSocial", documento.getRazonSocialReceptor(), "Proveedor"));
+        String direccionProveedor = escape(readText(root, "/receptor/direccion", null, "NA"));
+        String totalSinImpuestos = scaled(documento.getSubtotal() == null ? documento.getTotal() : documento.getSubtotal()).toPlainString();
+        String totalDescuento = scaled(documento.getDescuento()).toPlainString();
+        String importeTotal = scaled(documento.getTotal()).toPlainString();
+        String moneda = escape(safe(documento.getMoneda(), "USD"));
+        String detallesXml = buildDetallesLiquidacionCompra(root.path("detalles"), documento);
+
+        return """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <liquidacionCompra id="comprobante" version="1.0.0">
+                  <infoTributaria>
+                    <ambiente>%s</ambiente>
+                    <tipoEmision>1</tipoEmision>
+                    <razonSocial>%s</razonSocial>
+                    <nombreComercial>%s</nombreComercial>
+                    <ruc>%s</ruc>
+                    <claveAcceso>%s</claveAcceso>
+                    <codDoc>03</codDoc>
+                    <estab>%s</estab>
+                    <ptoEmi>%s</ptoEmi>
+                    <secuencial>%s</secuencial>
+                    <dirMatriz>%s</dirMatriz>
+                  </infoTributaria>
+                  <infoLiquidacionCompra>
+                    <fechaEmision>%s</fechaEmision>
+                    <dirEstablecimiento>%s</dirEstablecimiento>
+                    <tipoIdentificacionProveedor>%s</tipoIdentificacionProveedor>
+                    <razonSocialProveedor>%s</razonSocialProveedor>
+                    <identificacionProveedor>%s</identificacionProveedor>
+                    <direccionProveedor>%s</direccionProveedor>
+                    <obligadoContabilidad>NO</obligadoContabilidad>
+                    <totalSinImpuestos>%s</totalSinImpuestos>
+                    <totalDescuento>%s</totalDescuento>
+                    <importeTotal>%s</importeTotal>
+                    <moneda>%s</moneda>
+                  </infoLiquidacionCompra>
+                  <detalles>
+                %s
+                  </detalles>
+                </liquidacionCompra>
+                """.formatted(
+                documento.getAmbiente(),
+                razonSocial,
+                nombreComercial,
+                ruc,
+                claveAcceso,
+                safe(documento.getEstablecimiento(), "001"),
+                safe(documento.getPuntoEmision(), "001"),
+                safe(documento.getSecuencial(), "000000001"),
+                dirMatriz,
+                fechaEmision,
+                dirEstablecimiento,
+                tipoIdentificacionProveedor,
+                razonSocialProveedor,
+                identificacionProveedor,
+                direccionProveedor,
+                totalSinImpuestos,
+                totalDescuento,
+                importeTotal,
+                moneda,
+                detallesXml
+        );
     }
 
     private String generarNotaCredito(DocumentoElectronico documento) throws Exception {
@@ -356,6 +435,61 @@ public class DocumentoXmlService {
                           <cantidad>%s</cantidad>
                         </detalle>
                 """.formatted(itemCodigo, codigoAdicionalXml, itemDescripcion, itemCantidad);
+    }
+
+    private String buildDetallesLiquidacionCompra(JsonNode detallesNode, DocumentoElectronico documento) {
+        if (detallesNode.isArray() && !detallesNode.isEmpty()) {
+            StringBuilder xml = new StringBuilder();
+            for (JsonNode detalleNode : detallesNode) {
+                xml.append(buildDetalleLiquidacionCompra(detalleNode));
+            }
+            return xml.toString();
+        }
+
+        JsonNode detalleFallback = objectMapper.createObjectNode()
+                .put("codigo", safe(documento.getNumeroDocumento(), "LC-001"))
+                .put("descripcion", documento.getTipoDocumento().name())
+                .put("cantidad", "1")
+                .put("precioUnitario", scaled(documento.getSubtotal() == null ? documento.getTotal() : documento.getSubtotal()).toPlainString())
+                .put("descuento", scaled(documento.getDescuento()).toPlainString())
+                .put("precioTotalSinImpuesto", scaled(documento.getSubtotal() == null ? documento.getTotal() : documento.getSubtotal()).toPlainString());
+        return buildDetalleLiquidacionCompra(detalleFallback);
+    }
+
+    private String buildDetalleLiquidacionCompra(JsonNode detalleNode) {
+        String codigoPrincipal = escape(textOrDefault(detalleNode.path("codigo"), textOrDefault(detalleNode.path("codigoPrincipal"), "ITEM-1")));
+        String codigoAuxiliar = escape(textOrDefault(detalleNode.path("codigoAdicional"), textOrDefault(detalleNode.path("codigoAuxiliar"), "")));
+        String descripcion = escape(textOrDefault(detalleNode.path("descripcion"), "Detalle liquidacion"));
+        BigDecimal cantidad = scaled(decimalNode(detalleNode.path("cantidad"), BigDecimal.ONE));
+        BigDecimal precioUnitario = scaled(decimalNode(detalleNode.path("precioUnitario"), decimalNode(detalleNode.path("valorUnitario"), BigDecimal.ZERO)));
+        BigDecimal descuento = scaled(decimalNode(detalleNode.path("descuento"), BigDecimal.ZERO));
+        BigDecimal precioTotalSinImpuesto = scaled(decimalNode(
+                detalleNode.path("precioTotalSinImpuesto"),
+                cantidad.multiply(precioUnitario).subtract(descuento)
+        ));
+        String codigoAuxiliarXml = codigoAuxiliar.isBlank()
+                ? ""
+                : "\n                      <codigoAuxiliar>%s</codigoAuxiliar>".formatted(codigoAuxiliar);
+
+        return """
+                    <detalle>
+                      <codigoPrincipal>%s</codigoPrincipal>
+                %s
+                      <descripcion>%s</descripcion>
+                      <cantidad>%s</cantidad>
+                      <precioUnitario>%s</precioUnitario>
+                      <descuento>%s</descuento>
+                      <precioTotalSinImpuesto>%s</precioTotalSinImpuesto>
+                    </detalle>
+                """.formatted(
+                codigoPrincipal,
+                codigoAuxiliarXml,
+                descripcion,
+                cantidad.toPlainString(),
+                precioUnitario.toPlainString(),
+                descuento.toPlainString(),
+                precioTotalSinImpuesto.toPlainString()
+        );
     }
 
     private String generarNotaDebito(DocumentoElectronico documento) throws Exception {

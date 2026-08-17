@@ -14,7 +14,7 @@
       </div>
       <div class="header-actions">
         <span class="panel-badge">{{ totalItems }} usuarios</span>
-        <button type="button" class="primary-button" (click)="irANuevoUsuario()">Nuevo usuario</button>
+        <button *appHasPermission="'USUARIO_CREAR'" type="button" class="primary-button" (click)="irANuevoUsuario()">Nuevo usuario</button>
         <button type="button" class="ghost-button" (click)="cargarUsuarios()" [disabled]="loading">
           {{ loading ? 'Actualizando...' : 'Actualizar' }}
         </button>
@@ -49,6 +49,7 @@
             <td>
               <div class="actions">
                 <button
+                  *appHasPermission="'USUARIO_EDITAR'"
                   type="button"
                   class="action-button"
                   (click)="toggleEstado(usuario)"
@@ -58,6 +59,7 @@
                 </button>
 
                 <button
+                  *appHasPermission="'USUARIO_EDITAR'"
                   type="button"
                   class="action-button action-button--secondary"
                   (click)="irAEditarUsuario(usuario)"
@@ -67,6 +69,7 @@
                 </button>
 
                 <button
+                  *appHasPermission="'USUARIO_VER'"
                   type="button"
                   class="action-button action-button--secondary"
                   (click)="abrirAuditoria(usuario)"

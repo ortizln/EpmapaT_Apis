@@ -26,7 +26,7 @@
       <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
 
       <div class="actions">
-        <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Creando...' : 'Crear usuario' }}</button>
+        <button *appHasPermission="'USUARIO_CREAR'" type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Creando...' : 'Crear usuario' }}</button>
         <button type="button" class="ghost-button" (click)="volver()" [disabled]="saving">Cancelar</button>
       </div>
     </form>
@@ -50,7 +50,13 @@
       </div>
 
       <div class="actions actions--top" *ngIf="usuario as currentUser">
-        <button type="button" class="ghost-button" (click)="toggleEstado(currentUser)" [disabled]="saving || isSelfAdminDeactivateBlocked(currentUser)">
+        <button
+          *appHasPermission="'USUARIO_EDITAR'"
+          type="button"
+          class="ghost-button"
+          (click)="toggleEstado(currentUser)"
+          [disabled]="saving || isSelfAdminDeactivateBlocked(currentUser)"
+        >
           {{ saving ? 'Procesando...' : currentUser.activo ? 'Desactivar usuario' : 'Activar usuario' }}
         </button>
       </div>
@@ -62,7 +68,7 @@
         <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
 
         <div class="actions">
-          <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Actualizando...' : 'Guardar nueva clave' }}</button>
+          <button *appHasPermission="'USUARIO_EDITAR'" type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Actualizando...' : 'Guardar nueva clave' }}</button>
         </div>
       </form>
     </article>

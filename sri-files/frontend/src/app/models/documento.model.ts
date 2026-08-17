@@ -208,3 +208,21 @@ export interface DocumentoCorreoReenvioResponse {
   destinatario: string;
   mensaje: string;
 }
+
+export interface DocumentoAuditoriaEventoResponse {
+  id: number;
+  documentoUuid: string;
+  tipoDocumento: string;
+  numeroDocumento: string | null;
+  externalId: string | null;
+  estadoAnterior: string | null;
+  estadoNuevo: string | null;
+  descripcion: string | null;
+  origen: string | null;
+  createdAt: string | null;
+}
+
+export interface DocumentoAuditoriaResumenResponse {
+  totalEventos: number;
+  eventos: DocumentoAuditoriaEventoResponse[];
+}

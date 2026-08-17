@@ -1,0 +1,129 @@
+<app-page-header eyebrow="Seguridad" title="Roles y permisos" description="Matriz visual de accesos del sistema, preparada para evolucionar a permisos reales del backend." badge="Control de acceso" />
+
+<section class="workspace">
+  <article class="panel">
+    <div class="panel__header">
+      <div>
+        <h2>Resumen de roles</h2>
+        <p>Base de seguridad actual compatible con el esquema vigente de roles y lista preparada para permisos granulares.</p>
+      </div>
+      <label class="filter-field">
+        <span>Rol</span>
+        <select class="form-select form-select-sm" [value]="roleFilter" (change)="onRoleFilterChange(($any($event.target)).value)">
+          <option value="TODOS">Todos</option>
+          <option *ngFor="let role of roles()" [value]="role.codigo">{{ role.nombre }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="role-cards">
+      <article class="role-card" *ngFor="let role of filteredRoles()">
+        <span class="role-card__code">{{ role.codigo }}</span>
+        <h3>{{ role.nombre }}</h3>
+        <p>{{ role.descripcion }}</p>
+        <strong>{{ role.permisos.length }} permisos asignados</strong>
+        <button *appHasPermission="'ROL_ADMINISTRAR'" type="button" class="ghost-button role-card__action" (click)="abrirEdicion(role)">Editar permisos</button>
+      </article>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel__header">
+      <div>
+        <h2>Matriz visual de permisos</h2>
+        <p>La tabla muestra qué permisos tiene cada rol dentro del frontend actual.</p>
+      </div>
+    </div>
+
+    <div class="permission-groups">
+      <section class="permission-group" *ngFor="let group of permisosAgrupados() | keyvalue">
+        <div class="permission-group__header">
+          <h3>{{ group.key }}</h3>
+          <span>{{ group.value.length }} permisos</span>
+        </div>
+
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Permiso</th>
+                <th>Descripcion</th>
+                <th *ngFor="let role of filteredRoles()">{{ role.codigo }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let permiso of group.value">
+                <td>
+                  <strong>{{ permiso.codigo }}</strong>
+                  <small>{{ permiso.nombre }}</small>
+                </td>
+                <td>{{ permiso.descripcion }}</td>
+                <td *ngFor="let role of filteredRoles()">
+                  <span class="permission-pill" [class.permission-pill--active]="hasPermission(role, permiso.codigo)">
+                    {{ hasPermission(role, permiso.codigo) ? 'Si' : 'No' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </article>
+</section>
+
+<app-modal
+  [open]="!!selectedRole"
+  title="Editar rol"
+  eyebrow="Seguridad"
+  [wide]="true"
+  (closed)="cerrarEdicion()"
+>
+  <div *ngIf="selectedRole as role" class="role-editor">
+    <div class="role-editor__grid">
+      <label class="filter-field">
+        <span>Codigo</span>
+        <input type="text" [value]="role.codigo" disabled />
+      </label>
+      <label class="filter-field">
+        <span>Nombre</span>
+        <input type="text" [(ngModel)]="editNombre" />
+      </label>
+    </div>
+
+    <label class="filter-field">
+      <span>Descripcion</span>
+      <textarea rows="3" [(ngModel)]="editDescripcion"></textarea>
+    </label>
+
+    <div class="permission-groups">
+      <section class="permission-group" *ngFor="let group of permisosAgrupados() | keyvalue">
+        <div class="permission-group__header">
+          <h3>{{ group.key }}</h3>
+          <span>{{ group.value.length }} permisos</span>
+        </div>
+
+        <div class="editor-permissions">
+          <label class="permission-check" *ngFor="let permiso of group.value">
+            <input
+              type="checkbox"
+              [checked]="permisoSeleccionado(permiso.codigo)"
+              (change)="togglePermiso(permiso, $any($event.target).checked)"
+            />
+            <div>
+              <strong>{{ permiso.nombre }}</strong>
+              <small>{{ permiso.codigo }} · {{ permiso.descripcion }}</small>
+            </div>
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <div class="role-editor__actions">
+      <button type="button" class="ghost-button" (click)="cerrarEdicion()" [disabled]="editing">Cancelar</button>
+      <button type="button" class="primary-button" (click)="guardarRol()" [disabled]="editing">
+        {{ editing ? 'Guardando...' : 'Guardar cambios' }}
+      </button>
+    </div>
+  </div>
+</app-modal>

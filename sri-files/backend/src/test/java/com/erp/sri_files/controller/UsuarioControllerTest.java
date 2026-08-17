@@ -4,7 +4,10 @@ import com.erp.sri_files.dto.request.UsuarioCrearRequest;
 import com.erp.sri_files.dto.request.UsuarioEstadoRequest;
 import com.erp.sri_files.dto.request.UsuarioPasswordResetRequest;
 import com.erp.sri_files.dto.response.UsuarioAutenticadoResponse;
+import com.erp.sri_files.dto.response.UsuarioAuditoriaListadoItemResponse;
+import com.erp.sri_files.dto.response.UsuarioAuditoriaListadoResponse;
 import com.erp.sri_files.dto.response.UsuarioAuditoriaResponse;
+import com.erp.sri_files.dto.response.UsuarioSistemaListadoResponse;
 import com.erp.sri_files.dto.response.UsuarioSistemaResponse;
 import com.erp.sri_files.exceptions.GlobalExceptionHandler;
 import com.erp.sri_files.service.AuthService;
@@ -58,20 +61,25 @@ class UsuarioControllerTest {
 
     @Test
     void listaUsuarios() throws Exception {
-        when(usuarioSistemaService.listar()).thenReturn(List.of(
-                new UsuarioSistemaResponse(
+        when(usuarioSistemaService.listar(0, 10)).thenReturn(new UsuarioSistemaListadoResponse(
+                List.of(new UsuarioSistemaResponse(
                         UUID.randomUUID().toString(),
                         "admin",
                         "Administrador SRI Files",
                         "admin@sri-files.local",
                         "ADMIN",
                         true
-                )
+                )),
+                0,
+                10,
+                1,
+                1
         ));
 
         mockMvc.perform(get("/api/v1/usuarios"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].username").value("admin"));
+                .andExpect(jsonPath("$.items[0].username").value("admin"))
+                .andExpect(jsonPath("$.totalItems").value(1));
     }
 
     @Test
@@ -92,6 +100,33 @@ class UsuarioControllerTest {
     }
 
     @Test
+    void obtieneAuditoriaReciente() throws Exception {
+        when(usuarioSistemaService.listarAuditoriaReciente(0, 10)).thenReturn(new UsuarioAuditoriaListadoResponse(
+                List.of(new UsuarioAuditoriaListadoItemResponse(
+                        1L,
+                        UUID.randomUUID().toString(),
+                        "admin",
+                        "Administrador SRI Files",
+                        "admin@sri-files.local",
+                        "ADMIN",
+                        "USUARIO_CREADO",
+                        "Usuario creado con rol ADMIN",
+                        "admin",
+                        "2026-08-15T10:30:00"
+                )),
+                0,
+                10,
+                1,
+                1
+        ));
+
+        mockMvc.perform(get("/api/v1/usuarios/auditoria-reciente"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].username").value("admin"))
+                .andExpect(jsonPath("$.items[0].accion").value("USUARIO_CREADO"));
+    }
+
+    @Test
     void creaUsuario() throws Exception {
         when(usuarioSistemaService.crear(any(UsuarioCrearRequest.class), any(UsuarioAutenticadoResponse.class)))
                 .thenReturn(new UsuarioSistemaResponse(
@@ -107,7 +142,8 @@ class UsuarioControllerTest {
                         UUID.randomUUID().toString(),
                         "Administrador SRI Files",
                         "admin@sri-files.local",
-                        List.of("ADMIN")
+                        List.of("ADMIN"),
+                        List.of("USUARIO_CREAR", "USUARIO_EDITAR")
                 ));
 
         mockMvc.perform(post("/api/v1/usuarios")
@@ -143,7 +179,8 @@ class UsuarioControllerTest {
                         UUID.randomUUID().toString(),
                         "Administrador SRI Files",
                         "admin@sri-files.local",
-                        List.of("ADMIN")
+                        List.of("ADMIN"),
+                        List.of("USUARIO_EDITAR")
                 ));
 
         mockMvc.perform(patch("/api/v1/usuarios/{uuid}/estado", uuid)
@@ -171,7 +208,8 @@ class UsuarioControllerTest {
                         UUID.randomUUID().toString(),
                         "Administrador SRI Files",
                         "admin@sri-files.local",
-                        List.of("ADMIN")
+                        List.of("ADMIN"),
+                        List.of("USUARIO_EDITAR")
                 ));
 
         mockMvc.perform(patch("/api/v1/usuarios/{uuid}/password", uuid)

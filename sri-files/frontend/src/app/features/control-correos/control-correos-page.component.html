@@ -1,24 +1,24 @@
-<app-page-header eyebrow="Control" title="Seguimiento de correos" description="Vista operativa conectada a las metricas actuales del backend para notificaciones documentales." badge="Conectado" />
+<app-page-header eyebrow="Control" title="Seguimiento de correos" description="Bandeja operativa real de documentos con correo pendiente o con error de envio." badge="Backend real" />
 <div class="context-banner" *ngIf="companyContext.empresaActiva() as empresaActiva"><span>Empresa activa</span><strong>{{ empresaActiva.razonSocial }}</strong><small>{{ empresaActiva.ruc }}</small></div>
-<p class="feedback feedback--loading" *ngIf="loading">Consultando metricas de correo...</p>
+<p class="feedback feedback--loading" *ngIf="loading">Consultando bandeja de correos...</p>
 <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
-<ng-container *ngIf="snapshot as data">
+<ng-container>
   <section class="workspace">
     <article class="panel summary-panel">
-      <div class="panel__header"><div><h2>Indicadores de envio</h2><p>Lectura real disponible hoy desde el resumen operativo del backend.</p></div></div>
+      <div class="panel__header"><div><h2>Indicadores de envio</h2><p>Lectura real de los documentos que todavia requieren atencion en el circuito de correo.</p></div></div>
       <div class="summary-grid">
-        <div><span>Correos pendientes</span><strong>{{ data.resumen.correosPendientes }}</strong></div>
-        <div><span>Autorizados</span><strong>{{ data.resumen.autorizados }}</strong></div>
-        <div><span>Procesando</span><strong>{{ data.resumen.procesando }}</strong></div>
-        <div><span>Errores activos</span><strong>{{ data.resumen.errores }}</strong></div>
+        <div><span>Total en bandeja</span><strong>{{ totalItems }}</strong></div>
+        <div><span>Pendientes</span><strong>{{ pendientesCount() }}</strong></div>
+        <div><span>Con error</span><strong>{{ erroresCount() }}</strong></div>
+        <div><span>Requieren intervencion</span><strong>{{ intervencionCount() }}</strong></div>
       </div>
     </article>
     <article class="panel summary-panel">
-      <div class="panel__header"><div><h2>Ritmo documental</h2><p>Volumen reciente de documentos que impactan el circuito de notificacion.</p></div></div>
-      <div class="table-shell" *ngIf="data.porDia.length; else emptyState">
+      <div class="panel__header"><div><h2>Bandeja de seguimiento</h2><p>Documentos autorizados con correo pendiente o incidencias en el envio.</p></div></div>
+      <div class="table-shell" *ngIf="totalItems; else emptyState">
         <table>
-          <thead><tr><th>Fecha</th><th>Documentos</th></tr></thead>
-          <tbody><tr *ngFor="let item of pagedTimeline()"><td>{{ item.fecha }}</td><td>{{ item.cantidad }} documentos</td></tr></tbody>
+          <thead><tr><th>Documento</th><th>Tipo</th><th>Destinatario</th><th>Estado</th><th>Autorizacion</th><th>Recepcion</th></tr></thead>
+          <tbody><tr *ngFor="let item of pagedTimeline()"><td><strong>{{ item.numeroDocumento || 'Sin numero' }}</strong><small>{{ item.razonSocial || 'Sin receptor' }}</small></td><td>{{ item.tipoDocumento }}</td><td>{{ item.destinatario || 'Sin correo' }}</td><td><span class="status-pill" [class.status-pill--warning]="item.estado === 'CORREO_PENDIENTE'" [class.status-pill--danger]="item.estado === 'ERROR_CORREO'">{{ item.estado }}</span></td><td>{{ item.fechaAutorizacion || 'Sin fecha' }}</td><td>{{ item.fechaRecepcion || 'Sin fecha' }}</td></tr></tbody>
         </table>
       </div>
       <div class="pagination" *ngIf="totalItems > 0">
@@ -30,7 +30,7 @@
           <button type="button" class="secondary-button" (click)="onPageChange(currentPage + 1)" [disabled]="currentPage + 1 >= totalPages">Siguiente</button>
         </div>
       </div>
-      <ng-template #emptyState><div class="empty-state"><strong>Sin actividad reciente</strong><p>Cuando el backend acumule volumen documental por fecha, apareceran aqui referencias utiles para la cola de correos.</p></div></ng-template>
+      <ng-template #emptyState><div class="empty-state"><strong>Sin correos pendientes</strong><p>Cuando existan documentos con notificacion pendiente o fallida, se mostraran aqui para seguimiento operativo.</p></div></ng-template>
     </article>
   </section>
 </ng-container>

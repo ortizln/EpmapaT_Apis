@@ -1,0 +1,46 @@
+{
+  "tipoDocumento": "GUIA_REMISION",
+  "externalId": "ERP-GR-001",
+  "emisor": {
+    "ruc": "1790012345001",
+    "establecimiento": "001",
+    "puntoEmision": "002",
+    "ambiente": "1"
+  },
+  "receptor": {
+    "identificacion": "0102030405",
+    "razonSocial": "Cliente Demo",
+    "email": "cliente@correo.com"
+  },
+  "documento": {
+    "fechaEmision": "2026-08-14",
+    "secuencial": "000000127",
+    "direccionPartida": "Bodega central",
+    "fechaInicioTransporte": "14/08/2026",
+    "fechaFinTransporte": "14/08/2026",
+    "placa": "ABC1234",
+    "motivoTraslado": "Entrega programada",
+    "numDocSustento": "001-002-000000123"
+  },
+  "destinatarios": [
+    {
+      "identificacion": "0102030405",
+      "razonSocial": "Cliente Demo",
+      "direccion": "Av. Principal",
+      "motivoTraslado": "Entrega sector norte",
+      "codDocSustento": "01",
+      "numDocSustento": "001-002-000000123",
+      "detalles": [
+        {
+          "codigo": "MAT-001",
+          "descripcion": "Tuberia PVC",
+          "cantidad": "3"
+        }
+      ]
+    }
+  ],
+  "correo": {
+    "enviar": false,
+    "destinatarios": []
+  }
+}

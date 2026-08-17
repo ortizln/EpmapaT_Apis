@@ -7,9 +7,11 @@
         <h3>Contexto operativo</h3>
         <p>Selecciona empresa, establecimiento y punto de emision para configurar sus secuenciales.</p>
       </div>
-      <button *ngIf="embedded() && puntoEmisionId" type="button" class="primary-button" (click)="irAAdministrarSecuenciales()">
-        Administrar secuenciales
-      </button>
+      <ng-container *ngIf="embedded() && puntoEmisionId">
+        <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="button" class="primary-button" (click)="irAAdministrarSecuenciales()">
+          Administrar secuenciales
+        </button>
+      </ng-container>
     </div>
 
     <div class="filters-grid">
@@ -71,6 +73,7 @@
             <td>{{ getDraftActivo(secuencial) ? 'Activo' : 'Inactivo' }}</td>
             <td class="actions-cell">
               <button
+                *appHasPermission="'CATALOGO_ADMINISTRAR'"
                 type="button"
                 class="primary-button"
                 (click)="embedded() ? irAAdministrarSecuenciales() : guardar(secuencial)"

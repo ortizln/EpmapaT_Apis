@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 public class DocumentoWorkflowService {
 
     private final DocumentoXmlService documentoXmlService;
+    private final DocumentoXmlValidationService documentoXmlValidationService;
     private final ArchivoDocumentoService archivoDocumentoService;
     private final FirmaElectronicaService firmaElectronicaService;
     private final SriRecepcionPort sriRecepcionPort;
@@ -32,6 +33,7 @@ public class DocumentoWorkflowService {
 
     public DocumentoWorkflowService(
             DocumentoXmlService documentoXmlService,
+            DocumentoXmlValidationService documentoXmlValidationService,
             ArchivoDocumentoService archivoDocumentoService,
             FirmaElectronicaService firmaElectronicaService,
             SriRecepcionPort sriRecepcionPort,
@@ -43,6 +45,7 @@ public class DocumentoWorkflowService {
             ObjectMapper objectMapper
     ) {
         this.documentoXmlService = documentoXmlService;
+        this.documentoXmlValidationService = documentoXmlValidationService;
         this.archivoDocumentoService = archivoDocumentoService;
         this.firmaElectronicaService = firmaElectronicaService;
         this.sriRecepcionPort = sriRecepcionPort;
@@ -108,6 +111,10 @@ public class DocumentoWorkflowService {
     private String ejecutarEtapaXml(DocumentoElectronico documento) {
         try {
             String xmlGenerado = documentoXmlService.generar(documento);
+            var validation = documentoXmlValidationService.validate(documento.getTipoDocumento(), xmlGenerado);
+            if (!validation.valid()) {
+                throw new IllegalStateException("XML invalido: " + String.join(" | ", validation.errors()));
+            }
             archivoDocumentoService.guardarTexto(documento, DocumentoArchivoTipo.XML_GENERADO, xmlGenerado);
             estadoDocumentoService.cambiar(documento, DocumentoEstado.XML_GENERADO, "XML del documento generado");
             return xmlGenerado;

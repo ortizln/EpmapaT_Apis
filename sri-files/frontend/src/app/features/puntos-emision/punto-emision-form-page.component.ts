@@ -12,11 +12,12 @@ import { Empresa } from '../../models/empresa.model';
 import { Establecimiento } from '../../models/establecimiento.model';
 import { PuntoEmision, PuntoEmisionRequest } from '../../models/punto-emision.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-punto-emision-form-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './punto-emision-form-page.component.html',
   styleUrl: './punto-emision-form-page.component.scss'
 })

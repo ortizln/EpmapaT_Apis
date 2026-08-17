@@ -53,6 +53,10 @@ public class DocumentoEstadoHistorial {
         return id;
     }
 
+    public DocumentoElectronico getDocumento() {
+        return documento;
+    }
+
     public DocumentoEstado getEstadoAnterior() {
         return estadoAnterior;
     }

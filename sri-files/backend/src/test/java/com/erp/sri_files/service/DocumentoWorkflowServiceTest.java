@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 class DocumentoWorkflowServiceTest {
 
     private DocumentoXmlService documentoXmlService;
+    private DocumentoXmlValidationService documentoXmlValidationService;
     private ArchivoDocumentoService archivoDocumentoService;
     private FirmaElectronicaService firmaElectronicaService;
     private SriRecepcionPort sriRecepcionPort;
@@ -43,6 +44,7 @@ class DocumentoWorkflowServiceTest {
     @BeforeEach
     void setUp() {
         documentoXmlService = mock(DocumentoXmlService.class);
+        documentoXmlValidationService = mock(DocumentoXmlValidationService.class);
         archivoDocumentoService = mock(ArchivoDocumentoService.class);
         firmaElectronicaService = mock(FirmaElectronicaService.class);
         sriRecepcionPort = mock(SriRecepcionPort.class);
@@ -54,6 +56,7 @@ class DocumentoWorkflowServiceTest {
 
         service = new DocumentoWorkflowService(
                 documentoXmlService,
+                documentoXmlValidationService,
                 archivoDocumentoService,
                 firmaElectronicaService,
                 sriRecepcionPort,
@@ -70,6 +73,8 @@ class DocumentoWorkflowServiceTest {
     void procesaDocumentoAutorizadoHastaFinalizar() throws Exception {
         DocumentoElectronico documento = documentoBase();
         when(documentoXmlService.generar(documento)).thenReturn("<factura><claveAcceso>123</claveAcceso></factura>");
+        when(documentoXmlValidationService.validate(documento.getTipoDocumento(), "<factura><claveAcceso>123</claveAcceso></factura>"))
+                .thenReturn(new DocumentoXmlValidationService.XmlValidationResult(true, java.util.List.of()));
         when(firmaElectronicaService.firmar(eq(documento), any())).thenReturn("<facturaFirmada><claveAcceso>123</claveAcceso></facturaFirmada>");
 
         RespuestaSolicitud recepcion = new RespuestaSolicitud();
@@ -97,6 +102,18 @@ class DocumentoWorkflowServiceTest {
         verify(archivoDocumentoService).guardarBytes(documento, DocumentoArchivoTipo.RIDE_PDF, new byte[]{1, 2, 3});
         verify(correoDocumentoService).enviarNotificacionBasica(eq(documento.getEmpresa()), eq("cliente@correo.com"), any(), any());
         verify(estadoDocumentoService).cambiar(documento, DocumentoEstado.FINALIZADO, "Pipeline del documento finalizado");
+    }
+
+    @Test
+    void fallaSiXmlGeneradoEsInvalido() throws Exception {
+        DocumentoElectronico documento = documentoBase();
+        when(documentoXmlService.generar(documento)).thenReturn("<factura/>");
+        when(documentoXmlValidationService.validate(documento.getTipoDocumento(), "<factura/>"))
+                .thenReturn(new DocumentoXmlValidationService.XmlValidationResult(false, java.util.List.of("Campo obligatorio ausente: infoTributaria.claveAcceso")));
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> service.procesar(documento));
+
+        verify(documentoErrorService).registrar(eq(documento), eq(com.erp.sri_files.domain.documento.DocumentoEtapa.XML), eq("DOC_XML_ERROR"), eq("Error generando XML"), any(), eq(false));
     }
 
     private DocumentoElectronico documentoBase() {

@@ -31,7 +31,7 @@
       <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
 
       <div class="actions">
-        <button type="submit" class="primary-button" [disabled]="saving">
+        <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="submit" class="primary-button" [disabled]="saving">
           {{ saving ? 'Guardando...' : editingId ? 'Actualizar empresa' : 'Crear empresa' }}
         </button>
         <button type="button" class="ghost-button" (click)="volver()" [disabled]="saving">Cancelar</button>
@@ -82,7 +82,7 @@
       <p class="feedback feedback--error" *ngIf="configError">{{ configError }}</p>
 
       <div class="actions">
-        <button type="submit" class="primary-button" [disabled]="savingConfig">
+        <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="submit" class="primary-button" [disabled]="savingConfig">
           {{ savingConfig ? 'Guardando...' : 'Guardar configuracion' }}
         </button>
       </div>

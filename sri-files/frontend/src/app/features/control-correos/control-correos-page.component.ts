@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { catchError, finalize, of } from 'rxjs';
 import { CompanyContextService } from '../../core/services/company-context.service';
-import { DashboardService } from '../../core/services/dashboard.service';
-import { DashboardSnapshot } from '../../models/dashboard.model';
+import { MonitorService } from '../../core/services/monitor.service';
+import { CorreoPendienteItem } from '../../models/monitor-queue.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 
 @Component({
@@ -15,16 +15,25 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 })
 export class ControlCorreosPageComponent {
   protected readonly companyContext = inject(CompanyContextService);
-  private readonly dashboardService = inject(DashboardService);
+  private readonly monitorService = inject(MonitorService);
   private readonly pageSignal = signal(0);
   private readonly sizeSignal = signal(10);
 
-  protected snapshot: DashboardSnapshot | null = null;
+  protected correos: CorreoPendienteItem[] = [];
   protected loading = false;
   protected error = '';
   protected readonly sizeOptions = [5, 10, 20];
+  protected readonly pendientesCount = computed(() =>
+    this.correos.filter((item) => item.estado === 'CORREO_PENDIENTE').length
+  );
+  protected readonly erroresCount = computed(() =>
+    this.correos.filter((item) => item.estado === 'ERROR_CORREO').length
+  );
+  protected readonly intervencionCount = computed(() =>
+    this.correos.filter((item) => item.requiereIntervencion).length
+  );
   protected readonly pagedTimeline = computed(() => {
-    const items = this.snapshot?.porDia ?? [];
+    const items = this.correos ?? [];
     const start = this.pageSignal() * this.sizeSignal();
     return items.slice(start, start + this.sizeSignal());
   });
@@ -35,7 +44,7 @@ export class ControlCorreosPageComponent {
   }
 
   protected get totalItems(): number {
-    return this.snapshot?.porDia.length ?? 0;
+    return this.correos.length;
   }
 
   protected get totalPages(): number {
@@ -91,20 +100,20 @@ export class ControlCorreosPageComponent {
     this.loading = true;
     this.error = '';
 
-    this.dashboardService
-      .obtenerSnapshot(this.companyContext.empresaActiva()?.id)
+    this.monitorService
+      .obtenerCorreosPendientes()
       .pipe(
         catchError(() => {
-          this.error = 'No fue posible cargar las metricas actuales de correo desde el backend.';
-          this.snapshot = null;
+          this.error = 'No fue posible cargar la bandeja real de correos desde el backend.';
+          this.correos = [];
           return of(null);
         }),
         finalize(() => {
           this.loading = false;
         })
       )
-      .subscribe((snapshot) => {
-        this.snapshot = snapshot;
+      .subscribe((response) => {
+        this.correos = response?.items ?? [];
         this.pageSignal.set(0);
       });
   }

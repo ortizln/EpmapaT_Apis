@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AccessControlService } from '../../core/auth/access-control.service';
 import { AuthStore } from '../../core/auth/auth.store';
 import { AppUiService } from '../../core/services/app-ui.service';
 
@@ -12,6 +13,7 @@ import { AppUiService } from '../../core/services/app-ui.service';
   styleUrl: './sidebar.component.scss'
 })
 export class SidebarComponent {
+  protected readonly accessControl = inject(AccessControlService);
   protected readonly authStore = inject(AuthStore);
   protected readonly ui = inject(AppUiService);
 }

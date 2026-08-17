@@ -8,6 +8,8 @@ import com.erp.sri_files.domain.documento.DocumentoEstadoHistorial;
 import com.erp.sri_files.domain.documento.TipoDocumento;
 import com.erp.sri_files.dto.response.DocumentoCorreoEventoResponse;
 import com.erp.sri_files.dto.response.DocumentoCorreoSeguimientoResponse;
+import com.erp.sri_files.dto.response.DocumentoAuditoriaEventoResponse;
+import com.erp.sri_files.dto.response.DocumentoAuditoriaResumenResponse;
 import com.erp.sri_files.dto.response.DocumentoDetalleResponse;
 import com.erp.sri_files.dto.response.DocumentoErrorItemResponse;
 import com.erp.sri_files.dto.response.DocumentoEstadoResponse;
@@ -270,6 +272,15 @@ public class DocumentoConsultaService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public DocumentoAuditoriaResumenResponse obtenerAuditoriaReciente() {
+        List<DocumentoAuditoriaEventoResponse> eventos = historialRepository.findTop100ByOrderByCreatedAtDesc().stream()
+                .map(this::mapearAuditoriaEvento)
+                .toList();
+
+        return new DocumentoAuditoriaResumenResponse(eventos.size(), eventos);
+    }
+
     private Specification<DocumentoElectronico> aplicarFiltros(String empresaUuid, String tipoDocumento, String estado, String busqueda) {
         Specification<DocumentoElectronico> spec = Specification.where(null);
 
@@ -321,6 +332,22 @@ public class DocumentoConsultaService {
                 historial.getOrigen(),
                 historial.getUsuarioId(),
                 historial.getMetadata(),
+                historial.getCreatedAt() != null ? historial.getCreatedAt().toString() : null
+        );
+    }
+
+    private DocumentoAuditoriaEventoResponse mapearAuditoriaEvento(DocumentoEstadoHistorial historial) {
+        DocumentoElectronico documento = historial.getDocumento();
+        return new DocumentoAuditoriaEventoResponse(
+                historial.getId(),
+                documento != null && documento.getUuid() != null ? documento.getUuid().toString() : null,
+                documento != null && documento.getTipoDocumento() != null ? documento.getTipoDocumento().name() : null,
+                documento != null ? documento.getNumeroDocumento() : null,
+                documento != null ? documento.getExternalId() : null,
+                historial.getEstadoAnterior() != null ? historial.getEstadoAnterior().name() : null,
+                historial.getEstadoNuevo() != null ? historial.getEstadoNuevo().name() : null,
+                historial.getDescripcion(),
+                historial.getOrigen(),
                 historial.getCreatedAt() != null ? historial.getCreatedAt().toString() : null
         );
     }

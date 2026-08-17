@@ -198,32 +198,74 @@ export const adminLayoutRoutes: Routes = [
         data: { role: 'ADMIN' }
       },
       {
+        path: 'seguridad/roles',
+        loadComponent: () =>
+          import('../../features/roles/roles-page.component').then((m) => m.RolesPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'ROL_VER' }
+      },
+      {
         path: 'administracion/certificados',
         loadComponent: () =>
           import('../../features/certificados/certificados-page.component').then((m) => m.CertificadosPageComponent),
         canActivate: [permissionGuard],
-        data: { role: 'ADMIN' }
+        data: { role: 'ADMIN', permission: 'CERTIFICADO_ADMINISTRAR' }
       },
       {
         path: 'administracion/configuracion-correo',
         loadComponent: () =>
           import('../../features/configuracion-correo/configuracion-correo-page.component').then((m) => m.ConfiguracionCorreoPageComponent),
         canActivate: [permissionGuard],
-        data: { role: 'ADMIN' }
+        data: { role: 'ADMIN', permission: 'CONFIGURACION_CORREO_ADMINISTRAR' }
       },
       {
         path: 'control/errores',
         loadComponent: () =>
           import('../../features/control-errores/control-errores-page.component').then((m) => m.ControlErroresPageComponent),
         canActivate: [permissionGuard],
-        data: { role: 'ADMIN' }
+        data: { role: 'ADMIN', permission: 'CONTROL_ERRORES_VER' }
       },
       {
         path: 'control/correos',
         loadComponent: () =>
           import('../../features/control-correos/control-correos-page.component').then((m) => m.ControlCorreosPageComponent),
         canActivate: [permissionGuard],
-        data: { role: 'ADMIN' }
+        data: { role: 'ADMIN', permission: 'CONTROL_CORREOS_VER' }
+      },
+      {
+        path: 'control/monitoreo',
+        loadComponent: () =>
+          import('../../features/monitoreo/monitoreo-page.component').then((m) => m.MonitoreoPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'MONITOREO_VER' }
+      },
+      {
+        path: 'control/auditoria-documentos',
+        loadComponent: () =>
+          import('../../features/auditoria-documentos/auditoria-documentos-page.component').then((m) => m.AuditoriaDocumentosPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'DOCUMENTO_AUDITORIA_VER' }
+      },
+      {
+        path: 'control/auditoria-usuarios',
+        loadComponent: () =>
+          import('../../features/auditoria-usuarios/auditoria-usuarios-page.component').then((m) => m.AuditoriaUsuariosPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'USUARIO_AUDITORIA_VER' }
+      },
+      {
+        path: 'control/auditoria-roles',
+        loadComponent: () =>
+          import('../../features/auditoria-roles/auditoria-roles-page.component').then((m) => m.AuditoriaRolesPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'ROL_AUDITORIA_VER' }
+      },
+      {
+        path: 'control/auditoria-empresas',
+        loadComponent: () =>
+          import('../../features/auditoria-empresas/auditoria-empresas-page.component').then((m) => m.AuditoriaEmpresasPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'EMPRESA_AUDITORIA_VER' }
       }
     ]
   }

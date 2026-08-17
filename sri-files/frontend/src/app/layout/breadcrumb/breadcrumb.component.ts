@@ -28,6 +28,8 @@ export class BreadcrumbComponent {
     'puntos-emision': 'Puntos de emision',
     secuenciales: 'Secuenciales',
     usuarios: 'Usuarios',
+    seguridad: 'Seguridad',
+    roles: 'Roles y permisos',
     administracion: 'Administracion',
     certificados: 'Certificados',
     'configuracion-correo': 'Configuracion de correo',

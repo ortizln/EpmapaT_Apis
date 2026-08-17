@@ -13,11 +13,12 @@ import { Establecimiento } from '../../models/establecimiento.model';
 import { PuntoEmision } from '../../models/punto-emision.model';
 import { Secuencial } from '../../models/secuencial.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-secuencial-form-page',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent],
+  imports: [CommonModule, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './secuencial-form-page.component.html',
   styleUrl: './secuencial-form-page.component.scss'
 })

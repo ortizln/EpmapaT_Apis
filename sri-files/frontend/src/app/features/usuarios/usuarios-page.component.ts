@@ -7,11 +7,12 @@ import { UsuariosService } from '../../core/services/usuarios.service';
 import { UsuarioAuditoria, UsuarioSistema } from '../../models/auth.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { AppModalComponent } from '../../shared/components/app-modal/app-modal.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-usuarios-page',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent, AppModalComponent],
+  imports: [CommonModule, PageHeaderComponent, AppModalComponent, HasPermissionDirective],
   templateUrl: './usuarios-page.component.html',
   styleUrl: './usuarios-page.component.scss'
 })

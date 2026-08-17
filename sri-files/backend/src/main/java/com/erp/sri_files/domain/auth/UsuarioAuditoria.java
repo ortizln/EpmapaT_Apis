@@ -64,6 +64,10 @@ public class UsuarioAuditoria {
         this.createdAt = createdAt;
     }
 
+    public UsuarioSistema getUsuario() {
+        return usuario;
+    }
+
     public Long getId() {
         return id;
     }

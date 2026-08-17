@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
+  EmpresaAuditoriaListadoResponse,
   Empresa,
   EmpresaListadoResponse,
   EmpresaConfiguracion,
@@ -54,5 +55,9 @@ export class EmpresasService {
 
   actualizarConfiguracion(id: string, payload: EmpresaConfiguracionRequest): Observable<EmpresaConfiguracion> {
     return this.http.put<EmpresaConfiguracion>(`${this.apiUrl}/${id}/configuracion`, payload);
+  }
+
+  obtenerAuditoriaReciente(page = 0, size = 10): Observable<EmpresaAuditoriaListadoResponse> {
+    return this.http.get<EmpresaAuditoriaListadoResponse>(`${this.apiUrl}/auditoria-reciente?page=${page}&size=${size}`);
   }
 }

@@ -4,6 +4,7 @@ import com.erp.sri_files.dto.request.DocumentoRecepcionRequest;
 import com.erp.sri_files.dto.response.DocumentoAutorizacionConsultaResponse;
 import com.erp.sri_files.dto.response.DocumentoContratoResponse;
 import com.erp.sri_files.dto.response.DocumentoDetalleResponse;
+import com.erp.sri_files.dto.response.DocumentoAuditoriaResumenResponse;
 import com.erp.sri_files.dto.response.DocumentoAutorizacionManualResponse;
 import com.erp.sri_files.dto.response.DocumentoCorreoSeguimientoResponse;
 import com.erp.sri_files.dto.response.DocumentoCorreoReenvioResponse;
@@ -68,6 +69,11 @@ public class DocumentoController {
     @GetMapping("/{uuid}/historial")
     public ResponseEntity<List<DocumentoHistorialItemResponse>> obtenerHistorial(@PathVariable UUID uuid) {
         return ResponseEntity.ok(documentoApplicationService.obtenerHistorial(uuid));
+    }
+
+    @GetMapping("/auditoria")
+    public ResponseEntity<DocumentoAuditoriaResumenResponse> obtenerAuditoriaReciente() {
+        return ResponseEntity.ok(documentoApplicationService.obtenerAuditoriaReciente());
     }
 
     @GetMapping("/{uuid}/errores")

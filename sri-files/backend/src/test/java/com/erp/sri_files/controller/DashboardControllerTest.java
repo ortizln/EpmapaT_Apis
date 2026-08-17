@@ -41,7 +41,7 @@ class DashboardControllerTest {
 
     @Test
     void obtieneResumen() throws Exception {
-        when(dashboardService.obtenerResumen())
+        when(dashboardService.obtenerResumen(null))
                 .thenReturn(new DashboardResumenResponse(12, 3, 4, 5, 1, 2, 1));
 
         mockMvc.perform(get("/api/v1/dashboard/resumen"))
@@ -52,7 +52,7 @@ class DashboardControllerTest {
 
     @Test
     void obtieneDocumentosPorTipo() throws Exception {
-        when(dashboardService.obtenerDocumentosPorTipo())
+        when(dashboardService.obtenerDocumentosPorTipo(null))
                 .thenReturn(List.of(
                         new DashboardDocumentoTipoResponse("FACTURA", 8),
                         new DashboardDocumentoTipoResponse("NOTA_CREDITO", 2)
@@ -66,7 +66,7 @@ class DashboardControllerTest {
 
     @Test
     void obtieneDocumentosPorEstado() throws Exception {
-        when(dashboardService.obtenerDocumentosPorEstado())
+        when(dashboardService.obtenerDocumentosPorEstado(null))
                 .thenReturn(List.of(new DashboardDocumentoEstadoResponse("AUTORIZADO", 5)));
 
         mockMvc.perform(get("/api/v1/dashboard/documentos-por-estado"))
@@ -76,7 +76,7 @@ class DashboardControllerTest {
 
     @Test
     void obtieneDocumentosPorDia() throws Exception {
-        when(dashboardService.obtenerDocumentosPorDia())
+        when(dashboardService.obtenerDocumentosPorDia(null))
                 .thenReturn(List.of(new DashboardDocumentoDiaResponse("2026-08-14", 7)));
 
         mockMvc.perform(get("/api/v1/dashboard/documentos-por-dia"))
@@ -86,7 +86,7 @@ class DashboardControllerTest {
 
     @Test
     void obtieneErroresPorEtapa() throws Exception {
-        when(dashboardService.obtenerErroresPorEtapa())
+        when(dashboardService.obtenerErroresPorEtapa(null))
                 .thenReturn(List.of(new DashboardErrorEtapaResponse("CORREO", 3)));
 
         mockMvc.perform(get("/api/v1/dashboard/errores-por-etapa"))
@@ -96,7 +96,7 @@ class DashboardControllerTest {
 
     @Test
     void obtieneTiempos() throws Exception {
-        when(dashboardService.obtenerTiempos())
+        when(dashboardService.obtenerTiempos(null))
                 .thenReturn(new DashboardTiemposResponse(3400, 2100));
 
         mockMvc.perform(get("/api/v1/dashboard/tiempos"))

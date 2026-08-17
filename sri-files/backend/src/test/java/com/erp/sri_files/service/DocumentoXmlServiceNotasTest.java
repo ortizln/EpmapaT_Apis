@@ -78,6 +78,50 @@ class DocumentoXmlServiceNotasTest {
     }
 
     @Test
+    void generaLiquidacionCompraConDetalles() {
+        DocumentoElectronico documento = documentoBase(TipoDocumento.LIQUIDACION_COMPRA, "03");
+        documento.setJsonOriginal("""
+                {
+                  "emisor": {
+                    "razonSocial": "Empresa Demo",
+                    "nombreComercial": "Comercial Demo",
+                    "direccionMatriz": "Matriz Centro",
+                    "direccionEstablecimiento": "Sucursal Norte"
+                  },
+                  "receptor": {
+                    "tipoIdentificacion": "04",
+                    "identificacion": "1717171717",
+                    "razonSocial": "Proveedor Demo",
+                    "direccion": "Av. Proveedor"
+                  },
+                  "detalles": [
+                    {
+                      "codigo": "MAT-001",
+                      "codigoAdicional": "EXT-001",
+                      "descripcion": "Compra de materiales",
+                      "cantidad": "2",
+                      "precioUnitario": "50.00",
+                      "descuento": "0.00",
+                      "precioTotalSinImpuesto": "100.00"
+                    }
+                  ]
+                }
+                """);
+        documento.setRazonSocialReceptor("Proveedor Demo");
+        documento.setIdentificacionReceptor("1717171717");
+        documento.setSubtotal(new BigDecimal("100.00"));
+        documento.setImpuestos(new BigDecimal("12.00"));
+        documento.setTotal(new BigDecimal("112.00"));
+
+        String xml = service.generar(documento);
+
+        assertTrue(xml.contains("<liquidacionCompra id=\"comprobante\" version=\"1.0.0\">"));
+        assertTrue(xml.contains("<codDoc>03</codDoc>"));
+        assertTrue(xml.contains("<razonSocialProveedor>Proveedor Demo</razonSocialProveedor>"));
+        assertTrue(xml.contains("<codigoPrincipal>MAT-001</codigoPrincipal>"));
+    }
+
+    @Test
     void generaNotaDebitoConMultiplesMotivos() {
         DocumentoElectronico documento = documentoBase(TipoDocumento.NOTA_DEBITO, "05");
         documento.setJsonOriginal("""

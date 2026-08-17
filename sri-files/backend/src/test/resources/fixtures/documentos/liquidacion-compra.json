@@ -1,0 +1,35 @@
+{
+  "tipoDocumento": "LIQUIDACION_COMPRA",
+  "externalId": "ERP-LC-001",
+  "emisor": {
+    "ruc": "1790012345001",
+    "establecimiento": "001",
+    "puntoEmision": "002",
+    "ambiente": "1"
+  },
+  "receptor": {
+    "identificacion": "1717171717",
+    "razonSocial": "Proveedor Demo",
+    "email": "proveedor@correo.com"
+  },
+  "documento": {
+    "fechaEmision": "2026-08-14",
+    "secuencial": "000000124",
+    "moneda": "USD",
+    "subtotal": "100.00",
+    "impuestos": "12.00",
+    "total": "112.00"
+  },
+  "detalles": [
+    {
+      "codigo": "MAT-001",
+      "descripcion": "Compra de materiales",
+      "cantidad": "2",
+      "precioUnitario": "50.00"
+    }
+  ],
+  "correo": {
+    "enviar": false,
+    "destinatarios": []
+  }
+}

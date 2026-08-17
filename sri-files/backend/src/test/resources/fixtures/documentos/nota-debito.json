@@ -1,0 +1,36 @@
+{
+  "tipoDocumento": "NOTA_DEBITO",
+  "externalId": "ERP-ND-001",
+  "emisor": {
+    "ruc": "1790012345001",
+    "establecimiento": "001",
+    "puntoEmision": "002",
+    "ambiente": "1"
+  },
+  "receptor": {
+    "identificacion": "0102030405",
+    "razonSocial": "Cliente Demo",
+    "email": "cliente@correo.com"
+  },
+  "documento": {
+    "fechaEmision": "2026-08-14",
+    "secuencial": "000000126",
+    "moneda": "USD",
+    "subtotal": "5.00",
+    "impuestos": "0.00",
+    "total": "5.00",
+    "motivo": "Recargo operativo",
+    "numeroDocumentoModificado": "001-002-000000123",
+    "fechaEmisionDocumentoModificado": "14/08/2026"
+  },
+  "motivos": [
+    {
+      "razon": "Recargo por diferencia",
+      "valor": "5.00"
+    }
+  ],
+  "correo": {
+    "enviar": false,
+    "destinatarios": []
+  }
+}

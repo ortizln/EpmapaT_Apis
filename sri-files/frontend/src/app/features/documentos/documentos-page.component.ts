@@ -15,11 +15,12 @@ import {
 import { DocumentoContratoService } from '../../core/services/documento-contrato.service';
 import { DocumentoSeguimientoComponent } from './documento-seguimiento.component';
 import { DocumentosRecientesTableComponent } from './documentos-recientes-table.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-documentos-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent, DocumentoSeguimientoComponent, DocumentosRecientesTableComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent, DocumentoSeguimientoComponent, DocumentosRecientesTableComponent, HasPermissionDirective],
   templateUrl: './documentos-page.component.html',
   styleUrl: './documentos-page.component.scss'
 })

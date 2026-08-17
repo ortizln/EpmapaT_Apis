@@ -1,0 +1,44 @@
+{
+  "tipoDocumento": "NOTA_CREDITO",
+  "externalId": "ERP-NC-001",
+  "emisor": {
+    "ruc": "1790012345001",
+    "establecimiento": "001",
+    "puntoEmision": "002",
+    "ambiente": "1"
+  },
+  "receptor": {
+    "identificacion": "0102030405",
+    "razonSocial": "Cliente Demo",
+    "email": "cliente@correo.com"
+  },
+  "documento": {
+    "fechaEmision": "2026-08-14",
+    "secuencial": "000000125",
+    "moneda": "USD",
+    "subtotal": "25.00",
+    "impuestos": "0.00",
+    "total": "25.00",
+    "motivo": "Devolucion parcial",
+    "numeroDocumentoModificado": "001-002-000000123",
+    "fechaEmisionDocumentoModificado": "14/08/2026"
+  },
+  "detalles": [
+    {
+      "codigo": "ITEM-1",
+      "descripcion": "Devolucion servicio",
+      "cantidad": "1",
+      "precioUnitario": "25.00",
+      "descuento": "0.00",
+      "precioTotalSinImpuesto": "25.00",
+      "baseImponible": "25.00",
+      "valorImpuesto": "0.00"
+    }
+  ],
+  "correo": {
+    "enviar": true,
+    "destinatarios": [
+      "cliente@correo.com"
+    ]
+  }
+}

@@ -24,6 +24,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -137,6 +138,24 @@ class DocumentoRecepcionServiceTest {
         assertEquals((short) 2, captor.getValue().getAmbiente());
     }
 
+    @Test
+    void fallaSiNoExisteExternalId() {
+        Empresa empresa = new Empresa();
+        empresa.setUuid(UUID.randomUUID());
+        empresa.setRuc("1790012345001");
+        empresa.setRazonSocial("EPMAPA");
+        empresa.setSriAmbiente((short) 2);
+
+        when(empresaRepository.findByRuc("1790012345001")).thenReturn(Optional.of(empresa));
+
+        DocumentoRecepcionException exception = assertThrows(
+                DocumentoRecepcionException.class,
+                () -> service.recibir(requestSinExternalId(), "idem-3")
+        );
+
+        assertTrue(exception.getMessage().contains("externalId"));
+    }
+
     private DocumentoRecepcionRequest requestBase() {
         return new DocumentoRecepcionRequest(
                 "FACTURA",
@@ -158,6 +177,20 @@ class DocumentoRecepcionServiceTest {
                 Map.of("ruc", "1790012345001", "establecimiento", "001", "puntoEmision", "002"),
                 Map.of("identificacion", "0102030405", "razonSocial", "Cliente Demo", "email", "cliente@correo.com"),
                 Map.of("fechaEmision", "2026-08-14", "secuencial", "000000124", "subtotal", "10.00", "impuestos", "1.20", "total", "11.20", "moneda", "USD"),
+                List.of(),
+                List.of(),
+                Map.of(),
+                new DocumentoRecepcionRequest.CorreoRequest(true, List.of("cliente@correo.com"))
+        );
+    }
+
+    private DocumentoRecepcionRequest requestSinExternalId() {
+        return new DocumentoRecepcionRequest(
+                "FACTURA",
+                " ",
+                Map.of("ruc", "1790012345001", "establecimiento", "001", "puntoEmision", "002"),
+                Map.of("identificacion", "0102030405", "razonSocial", "Cliente Demo", "email", "cliente@correo.com"),
+                Map.of("fechaEmision", "2026-08-14", "secuencial", "000000125", "subtotal", "10.00", "impuestos", "1.20", "total", "11.20", "moneda", "USD"),
                 List.of(),
                 List.of(),
                 Map.of(),

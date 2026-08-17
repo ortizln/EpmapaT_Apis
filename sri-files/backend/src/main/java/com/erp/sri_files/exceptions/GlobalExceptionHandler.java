@@ -1,52 +1,72 @@
 package com.erp.sri_files.exceptions;
 
+import com.erp.sri_files.dto.response.ApiErrorResponse;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         List<String> details = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .toList();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", HttpStatus.BAD_REQUEST.value(),
-                "code", "DOC_VALIDATION_ERROR",
-                "message", "El documento contiene errores",
-                "details", details
-        ));
+        return build(HttpStatus.BAD_REQUEST, "DOC_VALIDATION_ERROR", "La solicitud contiene errores de validacion", details);
     }
 
     @ExceptionHandler(DocumentoRecepcionException.class)
-    public ResponseEntity<Map<String, Object>> handleDocumentoRecepcion(DocumentoRecepcionException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", HttpStatus.BAD_REQUEST.value(),
-                "code", "DOC_RECEPCION_ERROR",
-                "message", ex.getMessage(),
-                "details", List.of()
-        ));
+    public ResponseEntity<ApiErrorResponse> handleDocumentoRecepcion(DocumentoRecepcionException ex) {
+        return build(HttpStatus.BAD_REQUEST, "DOC_RECEPCION_ERROR", ex.getMessage(), List.of());
     }
 
     @ExceptionHandler(AuthException.class)
-    public ResponseEntity<Map<String, Object>> handleAuth(AuthException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", HttpStatus.UNAUTHORIZED.value(),
-                "code", "AUTH_ERROR",
-                "message", ex.getMessage(),
-                "details", List.of()
+    public ResponseEntity<ApiErrorResponse> handleAuth(AuthException ex) {
+        return build(HttpStatus.UNAUTHORIZED, "AUTH_ERROR", ex.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleEntityNotFound(EntityNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String detail = "Parametro invalido: " + ex.getName();
+        return build(HttpStatus.BAD_REQUEST, "REQUEST_TYPE_MISMATCH", "Uno o mas parametros tienen un formato invalido", List.of(detail));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        return build(HttpStatus.BAD_REQUEST, "REQUEST_ARGUMENT_ERROR", ex.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiErrorResponse> handleIllegalState(IllegalStateException ex) {
+        return build(HttpStatus.CONFLICT, "PROCESSING_ERROR", ex.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception ex) {
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Ocurrio un error interno no controlado", List.of(ex.getClass().getSimpleName()));
+    }
+
+    private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String code, String message, List<String> details) {
+        return ResponseEntity.status(status).body(new ApiErrorResponse(
+                LocalDateTime.now().toString(),
+                status.value(),
+                code,
+                message,
+                details
         ));
     }
 }

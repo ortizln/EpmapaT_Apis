@@ -1,0 +1,40 @@
+{
+  "tipoDocumento": "FACTURA",
+  "externalId": "ERP-FACT-001",
+  "emisor": {
+    "ruc": "1790012345001",
+    "establecimiento": "001",
+    "puntoEmision": "002",
+    "ambiente": "1"
+  },
+  "receptor": {
+    "identificacion": "0102030405",
+    "razonSocial": "Cliente Demo",
+    "email": "cliente@correo.com"
+  },
+  "documento": {
+    "fechaEmision": "2026-08-14",
+    "secuencial": "000000123",
+    "moneda": "USD",
+    "subtotal": "10.00",
+    "impuestos": "1.20",
+    "total": "11.20"
+  },
+  "detalles": [
+    {
+      "codigo": "ITEM-1",
+      "descripcion": "Servicio de agua potable",
+      "cantidad": "1",
+      "precioUnitario": "10.00"
+    }
+  ],
+  "informacionAdicional": {
+    "referencia": "CONTRATO-001"
+  },
+  "correo": {
+    "enviar": true,
+    "destinatarios": [
+      "cliente@correo.com"
+    ]
+  }
+}

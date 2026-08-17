@@ -4,6 +4,8 @@ import com.erp.sri_files.dto.request.DocumentoRecepcionRequest;
 import com.erp.sri_files.dto.response.DocumentoAutorizacionConsultaResponse;
 import com.erp.sri_files.dto.response.DocumentoContratoResponse;
 import com.erp.sri_files.dto.response.DocumentoAutorizacionManualResponse;
+import com.erp.sri_files.dto.response.DocumentoAuditoriaEventoResponse;
+import com.erp.sri_files.dto.response.DocumentoAuditoriaResumenResponse;
 import com.erp.sri_files.dto.response.DocumentoDetalleResponse;
 import com.erp.sri_files.dto.response.DocumentoRecepcionResponse;
 import com.erp.sri_files.dto.response.DocumentoEstadoResponse;
@@ -109,6 +111,21 @@ class DocumentoControllerTest {
     }
 
     @Test
+    void retornaBadRequestSiFaltaExternalId() throws Exception {
+        String body = """
+                {
+                  "tipoDocumento": "FACTURA"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/documentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DOC_VALIDATION_ERROR"));
+    }
+
+    @Test
     void obtieneEstadoDocumento() throws Exception {
         UUID uuid = UUID.randomUUID();
         when(documentoApplicationService.obtenerEstado(uuid))
@@ -178,7 +195,7 @@ class DocumentoControllerTest {
 
     @Test
     void listaDocumentosConFiltros() throws Exception {
-        when(documentoApplicationService.listar("FACTURA", "AUTORIZADO", "epmapa", 0, 10))
+        when(documentoApplicationService.listar(null, "FACTURA", "AUTORIZADO", "epmapa", 0, 10))
                 .thenReturn(new DocumentoListadoResponse(
                         List.of(new DocumentoListadoItemResponse(
                                 UUID.randomUUID().toString(),
@@ -230,5 +247,31 @@ class DocumentoControllerTest {
                 .andExpect(jsonPath("$.totalDocumentos").value(12))
                 .andExpect(jsonPath("$.recibidosHoy").value(3))
                 .andExpect(jsonPath("$.porTipo[0].clave").value("FACTURA"));
+    }
+
+    @Test
+    void obtieneAuditoriaReciente() throws Exception {
+        when(documentoApplicationService.obtenerAuditoriaReciente())
+                .thenReturn(new DocumentoAuditoriaResumenResponse(
+                        1,
+                        List.of(new DocumentoAuditoriaEventoResponse(
+                                10L,
+                                UUID.randomUUID().toString(),
+                                "FACTURA",
+                                "001-001-000000321",
+                                "ERP-001",
+                                "RECIBIDO",
+                                "XML_GENERADO",
+                                "XML del documento generado",
+                                "SYSTEM",
+                                "2026-08-15T18:20:00"
+                        ))
+                ));
+
+        mockMvc.perform(get("/api/v1/documentos/auditoria"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalEventos").value(1))
+                .andExpect(jsonPath("$.eventos[0].tipoDocumento").value("FACTURA"))
+                .andExpect(jsonPath("$.eventos[0].estadoNuevo").value("XML_GENERADO"));
     }
 }

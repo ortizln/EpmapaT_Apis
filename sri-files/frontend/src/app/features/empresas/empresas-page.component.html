@@ -49,7 +49,7 @@
       <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
 
       <div class="actions">
-        <button type="submit" class="primary-button" [disabled]="saving">
+        <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="submit" class="primary-button" [disabled]="saving">
           {{ saving ? 'Guardando...' : editingId ? 'Actualizar empresa' : 'Crear empresa' }}
         </button>
         <button type="button" class="ghost-button" (click)="resetForm()" [disabled]="saving">
@@ -67,9 +67,11 @@
       </div>
       <div class="header-actions">
         <span class="panel-badge">{{ totalItems }} empresas</span>
-        <button *ngIf="embedded()" type="button" class="primary-button" (click)="irANuevaEmpresa()">
-          Nueva empresa
-        </button>
+        <ng-container *ngIf="embedded()">
+          <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="button" class="primary-button" (click)="irANuevaEmpresa()">
+            Nueva empresa
+          </button>
+        </ng-container>
       </div>
     </div>
 
@@ -107,16 +109,19 @@
             <td>{{ empresa.obligadoContabilidad ? 'Si' : 'No' }}</td>
             <td class="actions-cell">
               <button
+                *appHasPermission="'CATALOGO_ADMINISTRAR'"
                 type="button"
                 class="ghost-button"
                 (click)="embedded() ? irAEditarEmpresa(empresa) : editar(empresa)"
               >
                 Editar
               </button>
-              <button type="button" class="ghost-button" (click)="abrirConfiguracion(empresa)" *ngIf="!embedded()">
-                Configuracion
-              </button>
-              <button type="button" class="ghost-button" (click)="cambiarEstado(empresa)" [disabled]="savingStateId === empresa.id">
+              <ng-container *ngIf="!embedded()">
+                <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="button" class="ghost-button" (click)="abrirConfiguracion(empresa)">
+                  Configuracion
+                </button>
+              </ng-container>
+              <button *appHasPermission="'CATALOGO_ADMINISTRAR'" type="button" class="ghost-button" (click)="cambiarEstado(empresa)" [disabled]="savingStateId === empresa.id">
                 {{ savingStateId === empresa.id ? 'Procesando...' : empresa.activo ? 'Desactivar' : 'Activar' }}
               </button>
             </td>
@@ -235,7 +240,7 @@
       <p class="feedback feedback--error" *ngIf="configError">{{ configError }}</p>
 
       <div class="actions">
-        <button type="submit" class="primary-button" [disabled]="savingConfig || !selectedEmpresa">
+        <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="submit" class="primary-button" [disabled]="savingConfig || !selectedEmpresa">
           {{ savingConfig ? 'Guardando...' : 'Guardar configuracion' }}
         </button>
         <button type="button" class="ghost-button" (click)="recargarConfiguracion()" [disabled]="savingConfig || !selectedEmpresa">

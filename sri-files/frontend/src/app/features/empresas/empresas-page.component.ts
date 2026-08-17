@@ -11,11 +11,12 @@ import {
   EmpresaRequest
 } from '../../models/empresa.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-empresas-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageHeaderComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './empresas-page.component.html',
   styleUrl: './empresas-page.component.scss'
 })

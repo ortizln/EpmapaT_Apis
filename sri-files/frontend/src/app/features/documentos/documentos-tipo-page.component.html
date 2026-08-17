@@ -4,7 +4,9 @@
   [description]="description()"
   badge="Bandeja especializada"
 >
-  <button *ngIf="newRoute()" type="button" (click)="irANuevoRegistro()">{{ newLabel() }}</button>
+  <ng-container *ngIf="newRoute()">
+    <button *appHasPermission="'DOCUMENTO_CREAR'" type="button" (click)="irANuevoRegistro()">{{ newLabel() }}</button>
+  </ng-container>
   <button type="button" class="secondary-button" routerLink="/documentos">Ver bandeja general</button>
 </app-page-header>
 

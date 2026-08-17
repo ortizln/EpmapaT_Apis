@@ -18,13 +18,14 @@ import { DocumentoContratoService } from '../../core/services/documento-contrato
 import { AppModalComponent } from '../../shared/components/app-modal/app-modal.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 type DocumentoDetalleTab = 'resumen' | 'estado' | 'archivos' | 'historial' | 'intentosSri' | 'errores' | 'correo';
 
 @Component({
   selector: 'app-documento-detalle-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeaderComponent, AppModalComponent, StatusChipComponent],
+  imports: [CommonModule, RouterLink, PageHeaderComponent, AppModalComponent, StatusChipComponent, HasPermissionDirective],
   templateUrl: './documento-detalle-page.component.html',
   styleUrl: './documento-detalle-page.component.scss'
 })

@@ -51,3 +51,29 @@ export interface EmpresaConfiguracionRequest {
   certificadoClave: string | null;
   limpiarCertificado: boolean;
 }
+
+export interface EmpresaAuditoria {
+  accion: string;
+  descripcion: string;
+  actorUsername: string | null;
+  fecha: string;
+}
+
+export interface EmpresaAuditoriaListadoItem {
+  id: number;
+  empresaId: string | null;
+  ruc: string | null;
+  razonSocial: string | null;
+  accion: string;
+  descripcion: string;
+  actorUsername: string | null;
+  fecha: string;
+}
+
+export interface EmpresaAuditoriaListadoResponse {
+  items: EmpresaAuditoriaListadoItem[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+}

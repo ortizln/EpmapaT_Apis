@@ -9,11 +9,12 @@ import { EstablecimientosService } from '../../core/services/establecimientos.se
 import { Empresa } from '../../models/empresa.model';
 import { Establecimiento, EstablecimientoRequest } from '../../models/establecimiento.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-establecimientos-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './establecimientos-page.component.html',
   styleUrl: './establecimientos-page.component.scss'
 })

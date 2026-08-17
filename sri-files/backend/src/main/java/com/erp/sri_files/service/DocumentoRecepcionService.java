@@ -48,6 +48,7 @@ public class DocumentoRecepcionService {
 
     @Transactional
     public DocumentoRecepcionResponse recibir(DocumentoRecepcionRequest request, String idempotencyKey) {
+        validarContratoBase(request);
         TipoDocumento tipoDocumento = parseTipoDocumento(request.tipoDocumento());
         Empresa empresa = resolverEmpresa(request);
 
@@ -102,6 +103,12 @@ public class DocumentoRecepcionService {
                 "Documento recibido para procesamiento",
                 false
         );
+    }
+
+    private void validarContratoBase(DocumentoRecepcionRequest request) {
+        if (blankToNull(request.externalId()) == null) {
+            throw new DocumentoRecepcionException("El campo externalId es obligatorio");
+        }
     }
 
     private void registrarHistorialInicial(DocumentoElectronico documento) {
