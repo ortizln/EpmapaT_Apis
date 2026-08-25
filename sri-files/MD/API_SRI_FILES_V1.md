@@ -10,6 +10,24 @@
 
 ---
 
+# 0. Estado de implementacion actual
+
+Este documento define la API objetivo V1 y tambien sirve como referencia del backend actualmente disponible.
+
+Al 2026-08-24:
+
+- la mayor parte de `/api/v1` ya se encuentra implementada;
+- el modulo de monitoreo opera con la ruta `/api/v1/monitoreo`;
+- el seguimiento de correo por documento opera con `GET /api/v1/documentos/{uuid}/correo`;
+- la consulta global de correos pendientes opera con `GET /api/v1/monitoreo/correos`;
+- la busqueda rapida y la exportacion siguen siendo puntos de alineacion pendientes si se desea publicar exactamente:
+  - `GET /api/v1/documentos/search`
+  - `GET /api/v1/documentos/export`
+
+Mientras exista una diferencia entre este archivo y el backend real, prevalece la implementacion efectiva del servicio.
+
+---
+
 # 1. Objetivo
 
 Definir la API REST v1 de `sri-files` para que sistemas externos, el frontend administrativo y operadores autorizados puedan:
@@ -346,26 +364,18 @@ GET /api/v1/documentos
 Filtros:
 
 ```text
-tipo
+empresaUuid
+tipoDocumento
 estado
-fechaDesde
-fechaHasta
-identificacion
-numeroDocumento
-claveAcceso
-externalId
-establecimiento
-puntoEmision
-email
+busqueda
 page
 size
-sort
 ```
 
 Ejemplo:
 
 ```text
-GET /api/v1/documentos?tipo=FACTURA&estado=AUTORIZADO&page=0&size=20
+GET /api/v1/documentos?tipoDocumento=FACTURA&estado=AUTORIZADO&busqueda=1790100634001&page=0&size=20
 ```
 
 ---
@@ -761,7 +771,7 @@ Las operaciones deben ser explícitas.
 ## Historial de correos
 
 ```http
-GET /api/v1/documentos/{uuid}/correos
+GET /api/v1/documentos/{uuid}/correo
 ```
 
 Response:
@@ -782,18 +792,14 @@ Response:
 # 34. Correos pendientes
 
 ```http
-GET /api/v1/correos?estado=PENDIENTE
+GET /api/v1/monitoreo/correos
 ```
 
-Filtros:
+Observacion:
 
 ```text
-estado
-fechaDesde
-fechaHasta
-destinatario
-page
-size
+La implementacion actual consolida la bandeja de correos pendientes dentro del modulo de monitoreo.
+Si luego se requiere una bandeja administrativa dedicada, podra exponerse `/api/v1/correos`.
 ```
 
 ---
@@ -1389,7 +1395,7 @@ Estos endpoints facilitan formularios y validaciones frontend.
 ## Estado general
 
 ```http
-GET /api/v1/monitoring/status
+GET /api/v1/monitoreo/health
 ```
 
 Response:
@@ -1413,7 +1419,7 @@ El estado SRI puede representar la última comprobación conocida para evitar ll
 # 70. Procesos pendientes
 
 ```http
-GET /api/v1/monitoring/pending
+GET /api/v1/monitoreo/pendientes
 ```
 
 ```json
@@ -1424,6 +1430,22 @@ GET /api/v1/monitoring/pending
   "requiereIntervencion": 1
 }
 ```
+
+---
+
+## Resumen de monitoreo
+
+```http
+GET /api/v1/monitoreo/resumen
+```
+
+La implementacion actual tambien expone:
+
+```http
+GET /api/v1/monitoreo/correos
+```
+
+para revisar correos pendientes dentro del mismo modulo.
 
 ---
 
@@ -2093,3 +2115,41 @@ ORDEN DE EJECUCIÓN
 ```
 
 De esta forma podrá entregarse el plan directamente a un agente de programación y ejecutar la migración paso a paso sin modificar indiscriminadamente el servicio productivo.
+
+---
+
+# 100. Anexo de alineacion con implementacion real
+
+Estado revisado al 2026-08-24 contra el backend actualmente disponible.
+
+## Rutas implementadas con diferencia frente al contrato historico
+
+- monitoreo:
+  - documentado historicamente: `/api/v1/monitoring/*`
+  - implementado actualmente: `/api/v1/monitoreo/*`
+- seguimiento de correo por documento:
+  - documentado historicamente: `GET /api/v1/documentos/{uuid}/correos`
+  - implementado actualmente: `GET /api/v1/documentos/{uuid}/correo`
+- bandeja de correos pendientes:
+  - documentado historicamente: `GET /api/v1/correos`
+  - implementado actualmente: `GET /api/v1/monitoreo/correos`
+
+## Endpoints aun pendientes de alineacion exacta
+
+- `GET /api/v1/documentos/search?q=...`
+- `GET /api/v1/documentos/export`
+- `POST /api/v1/documentos/bulk/reprocesar`
+
+Actualmente la busqueda operativa se atiende desde:
+
+```http
+GET /api/v1/documentos?empresaUuid=...&tipoDocumento=...&estado=...&busqueda=...&page=0&size=10
+```
+
+## Criterio de lectura recomendado
+
+Mientras no se cierre la normalizacion final del contrato, deben considerarse como fuente principal:
+
+1. el backend real en `backend/src/main/java/com/erp/sri_files/controller/`
+2. este anexo de alineacion
+3. el resto del documento como contrato objetivo

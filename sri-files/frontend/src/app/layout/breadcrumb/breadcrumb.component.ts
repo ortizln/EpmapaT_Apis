@@ -1,12 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-breadcrumb',
   standalone: true,
-  imports: [AsyncPipe],
+  imports: [CommonModule, AsyncPipe],
   templateUrl: './breadcrumb.component.html',
   styleUrl: './breadcrumb.component.scss'
 })
@@ -35,17 +35,23 @@ export class BreadcrumbComponent {
     'configuracion-correo': 'Configuracion de correo',
     control: 'Control',
     errores: 'Errores',
-    correos: 'Correos'
+    correos: 'Correos',
+    monitoreo: 'Monitoreo',
+    auditoria: 'Auditoria',
+    'auditoria-documentos': 'Auditoria documental',
+    'configuracion-sri': 'Configuracion SRI',
+    'plantillas-ride': 'Plantillas RIDE'
   };
 
-  protected readonly currentSection$ = this.router.events.pipe(
+  protected readonly breadcrumbItems$ = this.router.events.pipe(
     filter((event) => event instanceof NavigationEnd),
     startWith(null),
     map(() => {
       const segments = this.router.url.split('?')[0].split('/').filter(Boolean);
-      const lastSegment = segments.at(-1) ?? 'dashboard';
-      const normalizedSegment = /^\d+$/.test(lastSegment) ? segments.at(-2) ?? 'dashboard' : lastSegment;
-      return this.routeLabels[normalizedSegment] ?? this.formatSegment(normalizedSegment);
+      return ['Inicio', ...segments.map((segment, index) => {
+        const normalizedSegment = /^\d+$/.test(segment) ? segments[index - 1] ?? segment : segment;
+        return this.routeLabels[normalizedSegment] ?? this.formatSegment(normalizedSegment);
+      })];
     })
   );
 

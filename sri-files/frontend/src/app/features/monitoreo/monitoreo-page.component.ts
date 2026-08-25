@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
-import { catchError, finalize, interval, of, startWith, switchMap } from 'rxjs';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { catchError, finalize, forkJoin, interval, of, startWith, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MonitorService } from '../../core/services/monitor.service';
 import { MonitorHealthResponse, MonitorResumen } from '../../models/monitor.model';
@@ -25,8 +25,24 @@ export class MonitoreoPageComponent {
   protected error = '';
   protected readonly autoRefreshEnabled = signal(true);
   protected readonly refreshIntervalSeconds = 20;
+  protected readonly componentesNoOk = computed(
+    () => this.health?.componentes.filter((item) => !['OK', 'ACTIVO', 'UP'].includes((item.estado ?? '').toUpperCase())) ?? []
+  );
+  protected readonly pendientesConAlerta = computed(
+    () => this.pendientes.filter((item) => (item.estado ?? '').toUpperCase().includes('ERROR') || item.intentos > 1)
+  );
+  protected readonly topEstadoPendiente = computed(() => {
+    const counts = new Map<string, number>();
+    this.pendientes.forEach((item) => {
+      const key = item.estado ?? 'DESCONOCIDO';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+  });
 
   constructor() {
+    this.cargar();
     this.iniciarAutoRefresh();
   }
 
@@ -34,13 +50,16 @@ export class MonitoreoPageComponent {
     this.loading = true;
     this.error = '';
 
-    this.monitorService
-      .obtenerHealth()
+    forkJoin({
+      health: this.monitorService.obtenerHealth(),
+      pendientes: this.monitorService.obtenerPendientes()
+    })
       .pipe(
         catchError(() => {
           this.error = 'No fue posible consultar el estado operativo del backend.';
           this.health = null;
           this.resumen = null;
+          this.pendientes = [];
           return of(null);
         }),
         finalize(() => {
@@ -52,13 +71,10 @@ export class MonitoreoPageComponent {
           return;
         }
 
-        this.health = response;
-        this.resumen = response.resumen;
+        this.health = response.health;
+        this.resumen = response.health.resumen;
+        this.pendientes = response.pendientes.items;
       });
-
-    this.monitorService.obtenerPendientes().subscribe((response) => {
-      this.pendientes = response.items;
-    });
   }
 
   protected toggleAutoRefresh(): void {
@@ -92,11 +108,15 @@ export class MonitoreoPageComponent {
           this.loading = true;
           this.error = '';
 
-          return this.monitorService.obtenerHealth().pipe(
+          return forkJoin({
+            health: this.monitorService.obtenerHealth(),
+            pendientes: this.monitorService.obtenerPendientes()
+          }).pipe(
             catchError(() => {
               this.error = 'No fue posible consultar el estado operativo del backend.';
               this.health = null;
               this.resumen = null;
+              this.pendientes = [];
               return of(null);
             }),
             finalize(() => {
@@ -111,11 +131,9 @@ export class MonitoreoPageComponent {
           return;
         }
 
-        this.health = response;
-        this.resumen = response.resumen;
-        this.monitorService.obtenerPendientes().subscribe((pendientesResponse) => {
-          this.pendientes = pendientesResponse.items;
-        });
+        this.health = response.health;
+        this.resumen = response.health.resumen;
+        this.pendientes = response.pendientes.items;
       });
   }
 }

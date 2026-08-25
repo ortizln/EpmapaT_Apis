@@ -8,6 +8,12 @@ import {
   DocumentoSeccionContrato
 } from '../../models/documento.model';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import {
+  ClienteCatalogo,
+  FormaPagoCatalogo,
+  IvaTarifaCatalogo,
+  ProductoCatalogo
+} from '../../models/catalogos-comerciales.model';
 
 type DynamicFormGroup = UntypedFormGroup;
 type InputKind = 'text' | 'number' | 'date' | 'email' | 'select' | 'textarea';
@@ -42,11 +48,21 @@ export class DocumentoFormDinamicoComponent {
   readonly errorRecepcion = input('');
   readonly submitting = input(false);
   readonly loadingContrato = input(false);
+  readonly clientesCatalogo = input<ClienteCatalogo[]>([]);
+  readonly productosCatalogo = input<ProductoCatalogo[]>([]);
+  readonly formasPagoCatalogo = input<FormaPagoCatalogo[]>([]);
+  readonly ivaCatalogo = input<IvaTarifaCatalogo[]>([]);
 
   readonly reiniciar = output<void>();
   readonly enviar = output<void>();
   readonly agregarItem = output<string>();
   readonly quitarItem = output<{ sectionName: string; index: number }>();
+  protected xmlRetencionNombre = '';
+  protected xmlRetencionError = '';
+  protected xmlRetencionPreview = '';
+  protected xmlRetencionMetadata: Array<{ label: string; value: string }> = [];
+  protected xmlRetencionWarnings: string[] = [];
+  protected xmlRetencionValidationErrors: string[] = [];
 
   private readonly sriCatalogs: Record<string, CampoOption[]> = {
     ambiente: [
@@ -140,6 +156,24 @@ export class DocumentoFormDinamicoComponent {
     if (exactCatalog) {
       return { input: 'select', options: exactCatalog };
     }
+    if (campo.nombre === 'formaPago' && this.formasPagoCatalogo().length > 0) {
+      return {
+        input: 'select',
+        options: this.formasPagoCatalogo().map((item) => ({
+          value: item.codigo,
+          label: `${item.codigo} - ${item.nombre}`
+        }))
+      };
+    }
+    if (campo.nombre === 'codigoPorcentaje' && this.ivaCatalogo().length > 0) {
+      return {
+        input: 'select',
+        options: this.ivaCatalogo().map((item) => ({
+          value: item.codigo,
+          label: `${item.codigo} - ${item.nombre} (${item.porcentaje}%)`
+        }))
+      };
+    }
     if (key.includes('direccion') || key.includes('motivo') || key.includes('descripcion')) {
       return { input: 'textarea', rows: 3 };
     }
@@ -209,5 +243,272 @@ export class DocumentoFormDinamicoComponent {
       return 'El formato ingresado no es valido.';
     }
     return 'Verifica el valor ingresado.';
+  }
+
+  protected hasClienteHelper(seccion: DocumentoSeccionContrato): boolean {
+    return seccion.nombre === 'receptor' && this.clientesCatalogo().length > 0;
+  }
+
+  protected hasRetencionXmlHelper(seccion: DocumentoSeccionContrato): boolean {
+    return this.contrato()?.tipoDocumento === 'RETENCION' && seccion.nombre === 'documento';
+  }
+
+  protected hasProductoHelper(seccion: DocumentoSeccionContrato): boolean {
+    return seccion.nombre === 'detalles' && this.productosCatalogo().length > 0;
+  }
+
+  protected hasDestinatarioHelper(seccion: DocumentoSeccionContrato): boolean {
+    return seccion.nombre === 'destinatarios' && this.clientesCatalogo().length > 0;
+  }
+
+  protected applyClienteToReceptor(clienteId: string): void {
+    const cliente = this.clientesCatalogo().find((item) => item.id === clienteId);
+    const receptorGroup = this.form().get('receptor') as DynamicFormGroup | null;
+    if (!cliente || !receptorGroup) {
+      return;
+    }
+
+    if (receptorGroup.contains('tipoIdentificacion')) {
+      receptorGroup.get('tipoIdentificacion')?.setValue(cliente.tipoIdentificacion);
+    }
+    if (receptorGroup.contains('identificacion')) {
+      receptorGroup.get('identificacion')?.setValue(cliente.identificacion);
+    }
+    if (receptorGroup.contains('razonSocial')) {
+      receptorGroup.get('razonSocial')?.setValue(cliente.razonSocial);
+    }
+    if (receptorGroup.contains('email')) {
+      receptorGroup.get('email')?.setValue(cliente.email ?? '');
+    }
+    if (receptorGroup.contains('direccion')) {
+      receptorGroup.get('direccion')?.setValue(cliente.direccion ?? '');
+    }
+  }
+
+  protected applyProductoToDetalle(sectionName: string, index: number, productoId: string): void {
+    const producto = this.productosCatalogo().find((item) => item.id === productoId);
+    const itemGroup = this.getMultipleSectionArray(sectionName).at(index) as DynamicFormGroup | null;
+    if (!producto || !itemGroup) {
+      return;
+    }
+
+    if (itemGroup.contains('codigo')) {
+      itemGroup.get('codigo')?.setValue(producto.codigo);
+    }
+    if (itemGroup.contains('descripcion')) {
+      itemGroup.get('descripcion')?.setValue(producto.nombre);
+    }
+    if (itemGroup.contains('precioUnitario')) {
+      itemGroup.get('precioUnitario')?.setValue(String(producto.precioBase));
+    }
+    if (itemGroup.contains('codigoPorcentaje')) {
+      const iva = this.ivaCatalogo().find((item) => Number(item.porcentaje) === Number(producto.porcentajeIva));
+      itemGroup.get('codigoPorcentaje')?.setValue(iva?.codigo ?? '');
+    }
+  }
+
+  protected onRetencionXmlSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    this.xmlRetencionError = '';
+
+    if (!file) {
+      this.xmlRetencionNombre = '';
+      this.resetRetencionXmlAnalysis();
+      return;
+    }
+
+    const isXml = file.name.toLowerCase().endsWith('.xml') || file.type === 'text/xml' || file.type === 'application/xml';
+    if (!isXml) {
+      this.xmlRetencionNombre = '';
+      this.xmlRetencionError = 'Selecciona un archivo XML valido para la retencion.';
+      this.resetRetencionXmlAnalysis();
+      if (input) {
+        input.value = '';
+      }
+      return;
+    }
+
+    this.xmlRetencionNombre = file.name;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const xml = `${reader.result ?? ''}`.trim();
+      const documentoGroup = this.form().get('documento') as DynamicFormGroup | null;
+      if (!documentoGroup?.contains('xml')) {
+        this.xmlRetencionError = 'El contrato actual no expone el campo xml para la retencion.';
+        this.resetRetencionXmlAnalysis();
+        return;
+      }
+
+      if (!xml) {
+        this.xmlRetencionError = 'No fue posible leer contenido del archivo XML seleccionado.';
+        this.resetRetencionXmlAnalysis();
+        return;
+      }
+
+      documentoGroup.get('xml')?.setValue(xml);
+      this.analyzeRetencionXml(xml);
+    };
+    reader.onerror = () => {
+      this.xmlRetencionError = 'No fue posible leer el archivo XML seleccionado.';
+      this.resetRetencionXmlAnalysis();
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  protected clearRetencionXml(): void {
+    this.xmlRetencionNombre = '';
+    this.xmlRetencionError = '';
+    this.resetRetencionXmlAnalysis();
+    const documentoGroup = this.form().get('documento') as DynamicFormGroup | null;
+    if (documentoGroup?.contains('xml')) {
+      documentoGroup.get('xml')?.setValue('');
+    }
+  }
+
+  protected applyClienteToDestinatario(sectionName: string, index: number, clienteId: string): void {
+    const cliente = this.clientesCatalogo().find((item) => item.id === clienteId);
+    const itemGroup = this.getMultipleSectionArray(sectionName).at(index) as DynamicFormGroup | null;
+    if (!cliente || !itemGroup) {
+      return;
+    }
+
+    if (itemGroup.contains('identificacion')) {
+      itemGroup.get('identificacion')?.setValue(cliente.identificacion);
+    }
+    if (itemGroup.contains('razonSocial')) {
+      itemGroup.get('razonSocial')?.setValue(cliente.razonSocial);
+    }
+    if (itemGroup.contains('direccion')) {
+      itemGroup.get('direccion')?.setValue(cliente.direccion ?? '');
+    }
+  }
+
+  private analyzeRetencionXml(xml: string): void {
+    this.resetRetencionXmlAnalysis();
+    this.xmlRetencionPreview = this.prettyPrintXml(xml);
+
+    try {
+      const parser = new DOMParser();
+      const document = parser.parseFromString(xml, 'application/xml');
+      const parserError = document.querySelector('parsererror');
+      if (parserError) {
+        this.xmlRetencionValidationErrors = ['XML corrupto o no parseable. Revisa la estructura del archivo seleccionado.'];
+        return;
+      }
+
+      const root = document.documentElement;
+      const rootName = root.localName || root.nodeName;
+      const version = root.getAttribute('version')?.trim() ?? '';
+      const id = root.getAttribute('id')?.trim() ?? '';
+      const claveAcceso = this.firstNodeText(document, 'claveAcceso');
+      const ambiente = this.firstNodeText(document, 'ambiente');
+      const codDoc = this.firstNodeText(document, 'codDoc');
+      const ruc = this.firstNodeText(document, 'ruc');
+      const secuencial = this.firstNodeText(document, 'secuencial');
+      const fechaEmision = this.firstNodeText(document, 'fechaEmision');
+      const sujeto = this.firstNodeText(document, 'razonSocialSujetoRetenido');
+      const periodoFiscal = this.firstNodeText(document, 'periodoFiscal');
+      const impuestos = document.querySelectorAll('impuesto, retencion').length;
+
+      this.xmlRetencionMetadata = [
+        { label: 'Raiz', value: rootName || 'N/D' },
+        { label: 'Version', value: version || 'N/D' },
+        { label: 'Clave acceso', value: claveAcceso || 'N/D' },
+        { label: 'Ambiente', value: ambiente || 'N/D' },
+        { label: 'RUC', value: ruc || 'N/D' },
+        { label: 'Secuencial', value: secuencial || 'N/D' },
+        { label: 'Fecha emision', value: fechaEmision || 'N/D' },
+        { label: 'Sujeto retenido', value: sujeto || 'N/D' },
+        { label: 'Periodo fiscal', value: periodoFiscal || 'N/D' },
+        { label: 'Items retencion', value: String(impuestos) }
+      ];
+
+      if (rootName !== 'comprobanteRetencion') {
+        this.xmlRetencionValidationErrors.push(`Raiz invalida. Se esperaba <comprobanteRetencion> y se recibio <${rootName}>.`);
+      }
+      if (id !== 'comprobante') {
+        this.xmlRetencionValidationErrors.push('El atributo id del comprobante debe ser "comprobante".');
+      }
+      if (!version) {
+        this.xmlRetencionValidationErrors.push('El atributo version es obligatorio en <comprobanteRetencion>.');
+      } else if (!['1.0.0', '2.0.0'].includes(version)) {
+        this.xmlRetencionWarnings.push(`Version de retencion no reconocida por el validador local: ${version}.`);
+      }
+
+      this.requireXmlField(claveAcceso, 'infoTributaria.claveAcceso');
+      this.requireXmlField(ambiente, 'infoTributaria.ambiente');
+      this.requireXmlField(this.firstNodeText(document, 'tipoEmision'), 'infoTributaria.tipoEmision');
+      this.requireXmlField(codDoc, 'infoTributaria.codDoc');
+      this.requireXmlField(ruc, 'infoTributaria.ruc');
+      this.requireXmlField(secuencial, 'infoTributaria.secuencial');
+      this.requireXmlField(fechaEmision, 'infoCompRetencion.fechaEmision');
+      this.requireXmlField(periodoFiscal, 'infoCompRetencion.periodoFiscal');
+      this.requireXmlField(this.firstNodeText(document, 'tipoIdentificacionSujetoRetenido'), 'infoCompRetencion.tipoIdentificacionSujetoRetenido');
+      this.requireXmlField(this.firstNodeText(document, 'identificacionSujetoRetenido'), 'infoCompRetencion.identificacionSujetoRetenido');
+
+      if (codDoc && codDoc !== '07') {
+        this.xmlRetencionValidationErrors.push(`codDoc invalido para retencion. Se esperaba 07 y se recibio ${codDoc}.`);
+      }
+      if (ambiente && !['1', '2'].includes(ambiente)) {
+        this.xmlRetencionValidationErrors.push('ambiente invalido. Valores permitidos: 1 o 2.');
+      }
+      if (ruc && !/^\d{13}$/.test(ruc)) {
+        this.xmlRetencionValidationErrors.push('RUC invalido. Debe tener 13 digitos.');
+      }
+      if (!impuestos) {
+        this.xmlRetencionValidationErrors.push('La retencion no contiene impuestos retenidos.');
+      }
+      if (claveAcceso && !/^\d{49}$/.test(claveAcceso)) {
+        this.xmlRetencionValidationErrors.push('Clave de acceso invalida. Debe tener 49 digitos.');
+      }
+    } catch {
+      this.xmlRetencionValidationErrors = ['No fue posible analizar el XML de retencion seleccionado.'];
+    }
+  }
+
+  private requireXmlField(value: string, field: string): void {
+    if (!value) {
+      this.xmlRetencionValidationErrors.push(`Campo obligatorio ausente: ${field}.`);
+    }
+  }
+
+  private firstNodeText(document: Document, tagName: string): string {
+    const node = document.getElementsByTagName(tagName).item(0);
+    return node?.textContent?.trim().replace(/\s+/g, '') ?? '';
+  }
+
+  private prettyPrintXml(xml: string): string {
+    const normalized = xml.replace(/>\s*</g, '><').trim();
+    const parts = normalized.split(/>\s*</);
+    let indent = 0;
+    return parts
+      .map((part, index) => {
+        let current = part;
+        if (index === 0) {
+          current = `${current}>`;
+        } else if (index === parts.length - 1) {
+          current = `<${current}`;
+        } else {
+          current = `<${current}>`;
+        }
+
+        if (current.match(/^<\//)) {
+          indent = Math.max(indent - 1, 0);
+        }
+        const line = `${'  '.repeat(indent)}${current}`;
+        if (current.match(/^<[^!?/][^>]*[^/]>/) && !current.includes(`</`)) {
+          indent += 1;
+        }
+        return line;
+      })
+      .join('\n');
+  }
+
+  private resetRetencionXmlAnalysis(): void {
+    this.xmlRetencionPreview = '';
+    this.xmlRetencionMetadata = [];
+    this.xmlRetencionWarnings = [];
+    this.xmlRetencionValidationErrors = [];
   }
 }

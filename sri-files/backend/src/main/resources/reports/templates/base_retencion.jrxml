@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="base_retencion" pageWidth="595" pageHeight="842" columnWidth="515"
+              leftMargin="40" rightMargin="40" topMargin="30" bottomMargin="30">
+    <parameter name="RazonSocial" class="java.lang.String"/>
+    <parameter name="Ruc" class="java.lang.String"/>
+    <parameter name="NumeroDocumento" class="java.lang.String"/>
+    <parameter name="FechaEmision" class="java.lang.String"/>
+    <parameter name="razonSocialSujetoRetenido" class="java.lang.String"/>
+    <parameter name="identificacionSujetoRetenido" class="java.lang.String"/>
+    <field name="codigo" class="java.lang.String"/>
+    <field name="codigoRetencion" class="java.lang.String"/>
+    <field name="baseImponible" class="java.lang.String"/>
+    <field name="porcentajeRetener" class="java.lang.String"/>
+    <field name="valorRetenido" class="java.lang.String"/>
+    <title>
+        <band height="90">
+            <staticText><reportElement x="0" y="0" width="515" height="24"/><textElement textAlignment="Center"><font size="16" isBold="true"/></textElement><text><![CDATA[COMPROBANTE DE RETENCION]]></text></staticText>
+            <textField><reportElement x="0" y="30" width="250" height="18"/><textFieldExpression><![CDATA[$P{RazonSocial}]]></textFieldExpression></textField>
+            <textField><reportElement x="0" y="50" width="250" height="18"/><textFieldExpression><![CDATA["RUC: " + $P{Ruc}]]></textFieldExpression></textField>
+            <textField><reportElement x="280" y="30" width="235" height="18"/><textFieldExpression><![CDATA["No: " + $P{NumeroDocumento}]]></textFieldExpression></textField>
+            <textField><reportElement x="280" y="50" width="235" height="18"/><textFieldExpression><![CDATA["Sujeto: " + $P{razonSocialSujetoRetenido}]]></textFieldExpression></textField>
+        </band>
+    </title>
+    <columnHeader>
+        <band height="20">
+            <staticText><reportElement x="0" y="0" width="90" height="20"/><text><![CDATA[Impuesto]]></text></staticText>
+            <staticText><reportElement x="90" y="0" width="100" height="20"/><text><![CDATA[Cod. Ret.]]></text></staticText>
+            <staticText><reportElement x="190" y="0" width="100" height="20"/><text><![CDATA[Base]]></text></staticText>
+            <staticText><reportElement x="290" y="0" width="100" height="20"/><text><![CDATA[%]]></text></staticText>
+            <staticText><reportElement x="390" y="0" width="125" height="20"/><text><![CDATA[Valor Ret.]]></text></staticText>
+        </band>
+    </columnHeader>
+    <detail>
+        <band height="20">
+            <textField><reportElement x="0" y="0" width="90" height="20"/><textFieldExpression><![CDATA[$F{codigo}]]></textFieldExpression></textField>
+            <textField><reportElement x="90" y="0" width="100" height="20"/><textFieldExpression><![CDATA[$F{codigoRetencion}]]></textFieldExpression></textField>
+            <textField><reportElement x="190" y="0" width="100" height="20"/><textFieldExpression><![CDATA[$F{baseImponible}]]></textFieldExpression></textField>
+            <textField><reportElement x="290" y="0" width="100" height="20"/><textFieldExpression><![CDATA[$F{porcentajeRetener}]]></textFieldExpression></textField>
+            <textField><reportElement x="390" y="0" width="125" height="20"/><textFieldExpression><![CDATA[$F{valorRetenido}]]></textFieldExpression></textField>
+        </band>
+    </detail>
+</jasperReport>

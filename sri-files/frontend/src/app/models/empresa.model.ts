@@ -42,6 +42,40 @@ export interface EmpresaConfiguracion {
   certificadoVigenciaHasta: string | null;
 }
 
+export interface SriConfiguracion {
+  empresaId: string;
+  ambiente: number;
+  timeoutConexionMs: number;
+  timeoutRespuestaMs: number;
+  maxReintentos: number;
+  activo: boolean;
+}
+
+export interface SriConfiguracionRequest {
+  ambiente: number;
+  timeoutConexionMs: number;
+  timeoutRespuestaMs: number;
+  maxReintentos: number;
+  activo: boolean;
+}
+
+export interface CorreoConfiguracion {
+  empresaId: string;
+  remitente: string | null;
+  nombreRemitente: string | null;
+  enviarXml: boolean;
+  enviarRide: boolean;
+  plantillaAsunto: string | null;
+}
+
+export interface CorreoConfiguracionRequest {
+  remitente: string;
+  nombreRemitente: string;
+  enviarXml: boolean;
+  enviarRide: boolean;
+  plantillaAsunto: string;
+}
+
 export interface EmpresaConfiguracionRequest {
   ambienteSri: number;
   correoNotificaciones: string;

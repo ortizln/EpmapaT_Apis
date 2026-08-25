@@ -9,7 +9,7 @@ import com.erp.sri_files.dto.response.MonitorPendienteItemResponse;
 import com.erp.sri_files.dto.response.MonitorPendientesResponse;
 import com.erp.sri_files.dto.response.MonitorResumenResponse;
 import com.erp.sri_files.repositories.documento.DocumentoElectronicoRepository;
-import com.erp.sri_files.services.EmailMsClientService;
+import com.erp.sri_files.services.MailService;
 import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -54,18 +54,18 @@ public class MonitorService {
 
     private final DocumentoElectronicoRepository documentoElectronicoRepository;
     private final EntityManager entityManager;
-    private final EmailMsClientService emailMsClientService;
+    private final MailService mailService;
     private final String storageRoot;
 
     public MonitorService(
             DocumentoElectronicoRepository documentoElectronicoRepository,
             EntityManager entityManager,
-            EmailMsClientService emailMsClientService,
+            MailService mailService,
             @Value("${sri-files.storage.root:data/sri-files}") String storageRoot
     ) {
         this.documentoElectronicoRepository = documentoElectronicoRepository;
         this.entityManager = entityManager;
-        this.emailMsClientService = emailMsClientService;
+        this.mailService = mailService;
         this.storageRoot = storageRoot;
     }
 
@@ -177,11 +177,11 @@ public class MonitorService {
     }
 
     private MonitorComponenteEstadoResponse validarCorreo() {
-        boolean healthy = emailMsClientService.health();
+        boolean healthy = mailService.smtpHealth();
         return new MonitorComponenteEstadoResponse(
-                "email-ms",
+                "smtp",
                 healthy ? "UP" : "DOWN",
-                healthy ? "Servicio de correo disponible" : "No fue posible conectar con el servicio de correo"
+                healthy ? "SMTP operativo desde sri-files" : "No fue posible conectar con el SMTP configurado"
         );
     }
 

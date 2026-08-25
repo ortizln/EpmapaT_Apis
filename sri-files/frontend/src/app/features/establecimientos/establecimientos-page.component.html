@@ -16,28 +16,35 @@
     </div>
 
     <form class="establishment-form" [formGroup]="form" (ngSubmit)="guardar()">
-      <label>
-        <span class="form-label">Empresa</span>
-        <select formControlName="empresaId" (change)="onEmpresaChange()">
-          <option value="">Selecciona una empresa</option>
-          <option *ngFor="let empresa of empresas" [value]="empresa.id">{{ empresa.razonSocial }}</option>
-        </select>
-      </label>
+      <div class="form-grid">
+        <label>
+          <span class="form-label">Empresa</span>
+          <select formControlName="empresaId" (change)="onEmpresaChange()">
+            <option value="">Selecciona una empresa</option>
+            <option *ngFor="let empresa of empresas" [value]="empresa.id">{{ empresa.razonSocial }}</option>
+          </select>
+        </label>
 
-      <label>
-        <span class="form-label">Codigo</span>
-        <input type="text" formControlName="codigo" maxlength="3" />
-      </label>
+        <label>
+          <span class="form-label">Codigo</span>
+          <input type="text" formControlName="codigo" maxlength="3" />
+        </label>
 
-      <label>
-        <span class="form-label">Nombre</span>
-        <input type="text" formControlName="nombre" />
-      </label>
+        <label>
+          <span class="form-label">Nombre</span>
+          <input type="text" formControlName="nombre" />
+        </label>
 
-      <label>
-        <span class="form-label">Direccion</span>
-        <input type="text" formControlName="direccion" />
-      </label>
+        <label>
+          <span class="form-label">Direccion</span>
+          <input type="text" formControlName="direccion" />
+        </label>
+      </div>
+
+      <div class="form-highlight">
+        <strong>Contexto operativo</strong>
+        <p>El codigo del establecimiento forma parte de la numeracion oficial y debe mantenerse consistente con el emisor.</p>
+      </div>
 
       <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
 

@@ -10,176 +10,35 @@
   </div>
 
   <nav class="menu">
-    <section class="menu__group">
-      <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">General</p>
+    <section
+      class="menu__group"
+      *ngFor="let group of visibleGroups(); trackBy: trackByGroup"
+      [class.menu__group--expanded]="isGroupExpanded(group.id)"
+      [class.menu__group--active]="isGroupActive(group)"
+    >
+      <button
+        *ngIf="!ui.sidebarCollapsed()"
+        type="button"
+        class="menu__toggle"
+        [class.menu__toggle--active]="isGroupActive(group)"
+        (click)="toggleGroup(group.id)"
+      >
+        <span class="menu__heading">{{ group.heading }}</span>
+        <span class="menu__chevron" [class.menu__chevron--expanded]="isGroupExpanded(group.id)">⌄</span>
+      </button>
 
-      <a routerLink="/dashboard" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Dashboard' : null" (click)="ui.closeMobileSidebar()">
-        <span class="menu__icon">D</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Dashboard</span>
-      </a>
-    </section>
-
-    <section class="menu__group">
-      <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">Documentos</p>
-
-      <a routerLink="/documentos" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Documentos' : null" (click)="ui.closeMobileSidebar()">
-        <span class="menu__icon">B</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Documentos</span>
-      </a>
-      <a routerLink="/facturacion" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Facturacion' : null" (click)="ui.closeMobileSidebar()">
-        <span class="menu__icon">F</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Facturacion</span>
-      </a>
-      <a routerLink="/retenciones" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Retenciones' : null" (click)="ui.closeMobileSidebar()">
-        <span class="menu__icon">R</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Retenciones</span>
-      </a>
-      <a routerLink="/guias-remision" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Guias de remision' : null" (click)="ui.closeMobileSidebar()">
-        <span class="menu__icon">G</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Guias remision</span>
-      </a>
-      <a routerLink="/notas-credito" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Notas de credito' : null" (click)="ui.closeMobileSidebar()">
-        <span class="menu__icon">C</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Notas credito</span>
-      </a>
-      <a routerLink="/notas-debito" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Notas de debito' : null" (click)="ui.closeMobileSidebar()">
-        <span class="menu__icon">D</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Notas debito</span>
-      </a>
-      <a routerLink="/liquidaciones-compra" routerLinkActive="active" [attr.title]="ui.sidebarCollapsed() ? 'Liquidaciones de compra' : null" (click)="ui.closeMobileSidebar()">
-        <span class="menu__icon">L</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Liquidaciones</span>
-      </a>
-    </section>
-
-    <section class="menu__group" *ngIf="accessControl.hasPermission('CATALOGO_ADMINISTRAR') || accessControl.hasPermission('USUARIO_VER') || accessControl.hasPermission('CERTIFICADO_ADMINISTRAR') || accessControl.hasPermission('CONFIGURACION_CORREO_ADMINISTRAR') || accessControl.hasPermission('ROL_VER')">
-      <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">Administracion</p>
-
-      <a
-        *ngIf="accessControl.hasPermission('CATALOGO_ADMINISTRAR')"
-        routerLink="/catalogos"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Catalogos operativos' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">E</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Catalogos operativos</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('USUARIO_VER')"
-        routerLink="/usuarios"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Usuarios' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">U</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Usuarios</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('ROL_VER')"
-        routerLink="/seguridad/roles"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Roles y permisos' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">S</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Roles y permisos</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('CERTIFICADO_ADMINISTRAR')"
-        routerLink="/administracion/certificados"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Certificados' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">T</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Certificados</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('CONFIGURACION_CORREO_ADMINISTRAR')"
-        routerLink="/administracion/configuracion-correo"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Correo' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">&#64;</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Correo</span>
-      </a>
-    </section>
-
-    <section class="menu__group" *ngIf="accessControl.hasPermission('CONTROL_ERRORES_VER') || accessControl.hasPermission('CONTROL_CORREOS_VER') || accessControl.hasPermission('MONITOREO_VER') || accessControl.hasPermission('DOCUMENTO_AUDITORIA_VER') || accessControl.hasPermission('USUARIO_AUDITORIA_VER') || accessControl.hasPermission('ROL_AUDITORIA_VER') || accessControl.hasPermission('EMPRESA_AUDITORIA_VER')">
-      <p class="menu__heading" *ngIf="!ui.sidebarCollapsed()">Control</p>
-
-      <a
-        *ngIf="accessControl.hasPermission('CONTROL_ERRORES_VER')"
-        routerLink="/control/errores"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Errores' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">!</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Errores</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('CONTROL_CORREOS_VER')"
-        routerLink="/control/correos"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Control de correos' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">M</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Control correos</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('MONITOREO_VER')"
-        routerLink="/control/monitoreo"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Monitoreo' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">O</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Monitoreo</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('DOCUMENTO_AUDITORIA_VER')"
-        routerLink="/control/auditoria-documentos"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Auditoria documental' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">A</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Auditoria documentos</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('USUARIO_AUDITORIA_VER')"
-        routerLink="/control/auditoria-usuarios"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Auditoria de usuarios' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">U</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Auditoria usuarios</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('ROL_AUDITORIA_VER')"
-        routerLink="/control/auditoria-roles"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Auditoria de roles' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">R</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Auditoria roles</span>
-      </a>
-      <a
-        *ngIf="accessControl.hasPermission('EMPRESA_AUDITORIA_VER')"
-        routerLink="/control/auditoria-empresas"
-        routerLinkActive="active"
-        [attr.title]="ui.sidebarCollapsed() ? 'Auditoria de empresas' : null"
-        (click)="ui.closeMobileSidebar()"
-      >
-        <span class="menu__icon">E</span>
-        <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">Auditoria empresas</span>
-      </a>
+      <div class="menu__items" [class.menu__items--collapsed]="!isGroupExpanded(group.id)">
+        <a
+          *ngFor="let item of group.items; trackBy: trackByItem"
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [attr.title]="ui.sidebarCollapsed() ? item.title : null"
+          (click)="ui.closeMobileSidebar()"
+        >
+          <span class="menu__icon">{{ item.icon }}</span>
+          <span class="menu__label" *ngIf="!ui.sidebarCollapsed()">{{ item.label }}</span>
+        </a>
+      </div>
     </section>
   </nav>
 

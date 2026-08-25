@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="base_factura" pageWidth="595" pageHeight="842" columnWidth="515"
+              leftMargin="40" rightMargin="40" topMargin="30" bottomMargin="30">
+    <parameter name="RazonSocial" class="java.lang.String"/>
+    <parameter name="NombreComercial" class="java.lang.String"/>
+    <parameter name="Ruc" class="java.lang.String"/>
+    <parameter name="NumeroDocumento" class="java.lang.String"/>
+    <parameter name="FechaEmision" class="java.lang.String"/>
+    <parameter name="ClaveAcceso" class="java.lang.String"/>
+    <parameter name="RazonSocialComprador" class="java.lang.String"/>
+    <parameter name="IdentificacionComprador" class="java.lang.String"/>
+    <parameter name="ImporteTotal" class="java.lang.String"/>
+    <field name="codigoPrincipal" class="java.lang.String"/>
+    <field name="descripcion" class="java.lang.String"/>
+    <field name="cantidad" class="java.lang.String"/>
+    <field name="precioUnitario" class="java.lang.String"/>
+    <field name="precioTotalSinImpuesto" class="java.lang.String"/>
+    <title>
+        <band height="110">
+            <staticText>
+                <reportElement x="0" y="0" width="515" height="24"/>
+                <textElement textAlignment="Center">
+                    <font size="16" isBold="true"/>
+                </textElement>
+                <text><![CDATA[FACTURA ELECTRONICA]]></text>
+            </staticText>
+            <textField><reportElement x="0" y="32" width="300" height="18"/><textFieldExpression><![CDATA[$P{RazonSocial}]]></textFieldExpression></textField>
+            <textField><reportElement x="0" y="52" width="300" height="18"/><textFieldExpression><![CDATA["RUC: " + $P{Ruc}]]></textFieldExpression></textField>
+            <textField><reportElement x="320" y="32" width="195" height="18"/><textFieldExpression><![CDATA["No: " + $P{NumeroDocumento}]]></textFieldExpression></textField>
+            <textField><reportElement x="320" y="52" width="195" height="18"/><textFieldExpression><![CDATA["Fecha: " + $P{FechaEmision}]]></textFieldExpression></textField>
+            <textField><reportElement x="0" y="76" width="515" height="18"/><textFieldExpression><![CDATA["Cliente: " + $P{RazonSocialComprador} + " - " + $P{IdentificacionComprador}]]></textFieldExpression></textField>
+        </band>
+    </title>
+    <columnHeader>
+        <band height="20">
+            <staticText><reportElement x="0" y="0" width="70" height="20"/><text><![CDATA[Codigo]]></text></staticText>
+            <staticText><reportElement x="70" y="0" width="225" height="20"/><text><![CDATA[Descripcion]]></text></staticText>
+            <staticText><reportElement x="295" y="0" width="70" height="20"/><text><![CDATA[Cantidad]]></text></staticText>
+            <staticText><reportElement x="365" y="0" width="70" height="20"/><text><![CDATA[P. Unit]]></text></staticText>
+            <staticText><reportElement x="435" y="0" width="80" height="20"/><text><![CDATA[Total]]></text></staticText>
+        </band>
+    </columnHeader>
+    <detail>
+        <band height="20">
+            <textField><reportElement x="0" y="0" width="70" height="20"/><textFieldExpression><![CDATA[$F{codigoPrincipal}]]></textFieldExpression></textField>
+            <textField><reportElement x="70" y="0" width="225" height="20"/><textFieldExpression><![CDATA[$F{descripcion}]]></textFieldExpression></textField>
+            <textField><reportElement x="295" y="0" width="70" height="20"/><textFieldExpression><![CDATA[$F{cantidad}]]></textFieldExpression></textField>
+            <textField><reportElement x="365" y="0" width="70" height="20"/><textFieldExpression><![CDATA[$F{precioUnitario}]]></textFieldExpression></textField>
+            <textField><reportElement x="435" y="0" width="80" height="20"/><textFieldExpression><![CDATA[$F{precioTotalSinImpuesto}]]></textFieldExpression></textField>
+        </band>
+    </detail>
+    <summary>
+        <band height="40">
+            <textField><reportElement x="335" y="10" width="180" height="20"/><textFieldExpression><![CDATA["Total: " + $P{ImporteTotal}]]></textFieldExpression></textField>
+        </band>
+    </summary>
+</jasperReport>

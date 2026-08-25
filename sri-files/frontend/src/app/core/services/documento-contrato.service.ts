@@ -8,6 +8,8 @@ import {
   DocumentoAutorizacionManualResponse,
   DocumentoCorreoReenvioResponse,
   DocumentoCorreoSeguimientoResponse,
+  DocumentoArchivoItemResponse,
+  DocumentoOperacionManualResponse,
   DocumentoResumenOperativo,
   DocumentoDetalleResponse,
   DocumentoErrorItemResponse,
@@ -59,6 +61,10 @@ export class DocumentoContratoService {
     return this.http.get<DocumentoHistorialItemResponse[]>(`${this.apiUrl}/${uuid}/historial`);
   }
 
+  listarArchivos(uuid: string): Observable<DocumentoArchivoItemResponse[]> {
+    return this.http.get<DocumentoArchivoItemResponse[]>(`${this.apiUrl}/${uuid}/archivos`);
+  }
+
   obtenerErrores(uuid: string): Observable<DocumentoErrorItemResponse[]> {
     return this.http.get<DocumentoErrorItemResponse[]>(`${this.apiUrl}/${uuid}/errores`);
   }
@@ -73,6 +79,48 @@ export class DocumentoContratoService {
 
   reenviarCorreo(uuid: string): Observable<DocumentoCorreoReenvioResponse> {
     return this.http.post<DocumentoCorreoReenvioResponse>(`${this.apiUrl}/${uuid}/reenviar-correo`, {});
+  }
+
+  reprocesar(uuid: string, motivo?: string): Observable<DocumentoOperacionManualResponse> {
+    return this.http.post<DocumentoOperacionManualResponse>(`${this.apiUrl}/${uuid}/reprocesar`, {
+      motivo: motivo?.trim() || null
+    });
+  }
+
+  cargarXmlSinFirmar(uuid: string, file: File, motivo?: string): Observable<DocumentoOperacionManualResponse> {
+    const formData = new FormData();
+    formData.append('xml', file);
+
+    let url = `${this.apiUrl}/${uuid}/xml-sin-firmar`;
+    if (motivo?.trim()) {
+      const queryParams = new URLSearchParams();
+      queryParams.set('motivo', motivo.trim());
+      url = `${url}?${queryParams.toString()}`;
+    }
+
+    return this.http.post<DocumentoOperacionManualResponse>(url, formData);
+  }
+
+  regenerarRide(uuid: string, motivo?: string): Observable<DocumentoOperacionManualResponse> {
+    return this.http.post<DocumentoOperacionManualResponse>(`${this.apiUrl}/${uuid}/regenerar-ride`, {
+      motivo: motivo?.trim() || null
+    });
+  }
+
+  descargarXml(uuid: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${uuid}/xml`, { responseType: 'blob' });
+  }
+
+  descargarXmlFirmado(uuid: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${uuid}/xml-firmado`, { responseType: 'blob' });
+  }
+
+  descargarXmlAutorizado(uuid: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${uuid}/xml-autorizado`, { responseType: 'blob' });
+  }
+
+  descargarRide(uuid: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${uuid}/ride`, { responseType: 'blob' });
   }
 
   listarDocumentos(params: {
@@ -102,6 +150,41 @@ export class DocumentoContratoService {
     queryParams.set('size', String(params.size ?? 10));
 
     return this.http.get<DocumentoListadoResponse>(`${this.apiUrl}?${queryParams.toString()}`);
+  }
+
+  buscarDocumentos(q: string, page = 0, size = 10): Observable<DocumentoListadoResponse> {
+    const queryParams = new URLSearchParams();
+    queryParams.set('q', q);
+    queryParams.set('page', String(page));
+    queryParams.set('size', String(size));
+
+    return this.http.get<DocumentoListadoResponse>(`${this.apiUrl}/search?${queryParams.toString()}`);
+  }
+
+  exportarDocumentos(params: {
+    empresaUuid?: string;
+    tipoDocumento?: string;
+    estado?: string;
+    busqueda?: string;
+  }): Observable<Blob> {
+    const queryParams = new URLSearchParams();
+
+    if (params.empresaUuid) {
+      queryParams.set('empresaUuid', params.empresaUuid);
+    }
+    if (params.tipoDocumento) {
+      queryParams.set('tipoDocumento', params.tipoDocumento);
+    }
+    if (params.estado) {
+      queryParams.set('estado', params.estado);
+    }
+    if (params.busqueda) {
+      queryParams.set('busqueda', params.busqueda);
+    }
+
+    return this.http.get(`${this.apiUrl}/export?${queryParams.toString()}`, {
+      responseType: 'blob'
+    });
   }
 
   obtenerResumenOperativo(): Observable<DocumentoResumenOperativo> {

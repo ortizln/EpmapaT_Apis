@@ -61,6 +61,23 @@ export class AuditoriaDocumentosPageComponent {
     const start = this.pageSignal() * this.sizeSignal();
     return items.slice(start, start + this.sizeSignal());
   });
+  protected readonly eventosConError = computed(
+    () =>
+      this.filteredItems().filter((item) => {
+        const estado = (item.estadoNuevo ?? '').toUpperCase();
+        return estado.includes('ERROR') || estado.includes('DEVUELTO') || estado.includes('NO_AUTORIZADO');
+      }).length
+  );
+  protected readonly ultimoEvento = computed(() => this.filteredItems()[0] ?? null);
+  protected readonly origenPrincipal = computed(() => {
+    const counts = new Map<string, number>();
+    this.filteredItems().forEach((item) => {
+      const key = item.origen ?? 'SIN_ORIGEN';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+  });
 
   constructor() {
     this.cargar();

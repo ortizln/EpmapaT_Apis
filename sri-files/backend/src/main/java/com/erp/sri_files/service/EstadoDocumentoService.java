@@ -57,6 +57,25 @@ public class EstadoDocumentoService {
         return guardado;
     }
 
+    @Transactional
+    public DocumentoElectronico forzarCambio(DocumentoElectronico documento, DocumentoEstado nuevoEstado, String descripcion, String origen) {
+        DocumentoEstado actual = documento.getEstadoActual();
+        documento.setEstadoActual(nuevoEstado);
+        documento.setRequiereIntervencion(false);
+        DocumentoElectronico guardado = documentoRepository.save(documento);
+
+        DocumentoEstadoHistorial historial = new DocumentoEstadoHistorial();
+        historial.setDocumento(guardado);
+        historial.setEstadoAnterior(actual);
+        historial.setEstadoNuevo(nuevoEstado);
+        historial.setDescripcion(descripcion);
+        historial.setOrigen(origen);
+        historial.setCreatedAt(LocalDateTime.now());
+        historialRepository.save(historial);
+
+        return guardado;
+    }
+
     private boolean transicionPermitida(DocumentoEstado actual, DocumentoEstado nuevoEstado) {
         Set<DocumentoEstado> permitidos = TRANSICIONES.get(actual);
         return permitidos != null && permitidos.contains(nuevoEstado);

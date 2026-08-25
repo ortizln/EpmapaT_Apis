@@ -6,6 +6,7 @@ import com.erp.sri_files.domain.documento.DocumentoEstado;
 import com.erp.sri_files.dto.response.DocumentoAutorizacionConsultaResponse;
 import com.erp.sri_files.dto.response.DocumentoAutorizacionManualResponse;
 import com.erp.sri_files.dto.response.DocumentoCorreoReenvioResponse;
+import com.erp.sri_files.dto.response.DocumentoOperacionManualResponse;
 import com.erp.sri_files.exceptions.DocumentoRecepcionException;
 import com.erp.sri_files.repositories.documento.DocumentoElectronicoRepository;
 import com.erp.sri_files.sri.port.SriAutorizacionPort;
@@ -14,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ec.gob.sri.ws.autorizacion.RespuestaComprobante;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -42,6 +44,41 @@ public class DocumentoOperacionService {
             DocumentoEstado.CORREO_ENVIADO,
             DocumentoEstado.ERROR_CORREO,
             DocumentoEstado.FINALIZADO
+    );
+
+    private static final Set<DocumentoEstado> ESTADOS_REGENERAR_RIDE = Set.of(
+            DocumentoEstado.AUTORIZADO,
+            DocumentoEstado.RIDE_GENERADO,
+            DocumentoEstado.CORREO_PENDIENTE,
+            DocumentoEstado.CORREO_ENVIADO,
+            DocumentoEstado.FINALIZADO,
+            DocumentoEstado.ERROR_RIDE
+    );
+
+    private static final Set<DocumentoEstado> ESTADOS_REPROCESAR = Set.of(
+            DocumentoEstado.ERROR_XML,
+            DocumentoEstado.ERROR_FIRMA,
+            DocumentoEstado.ERROR_ENVIO_SRI,
+            DocumentoEstado.ERROR_AUTORIZACION,
+            DocumentoEstado.ERROR_RIDE,
+            DocumentoEstado.ERROR_CORREO,
+            DocumentoEstado.DEVUELTO_SRI,
+            DocumentoEstado.NO_AUTORIZADO,
+            DocumentoEstado.REQUIERE_INTERVENCION
+    );
+
+    private static final Set<DocumentoEstado> ESTADOS_CARGA_XML_MANUAL = Set.of(
+            DocumentoEstado.RECIBIDO,
+            DocumentoEstado.VALIDANDO,
+            DocumentoEstado.VALIDADO,
+            DocumentoEstado.XML_GENERADO,
+            DocumentoEstado.ERROR_XML,
+            DocumentoEstado.ERROR_FIRMA,
+            DocumentoEstado.ERROR_ENVIO_SRI,
+            DocumentoEstado.ERROR_AUTORIZACION,
+            DocumentoEstado.DEVUELTO_SRI,
+            DocumentoEstado.NO_AUTORIZADO,
+            DocumentoEstado.REQUIERE_INTERVENCION
     );
 
     private final DocumentoElectronicoRepository documentoRepository;
@@ -250,5 +287,168 @@ public class DocumentoOperacionService {
         } catch (Exception ex) {
             throw new DocumentoRecepcionException("No fue posible reenviar el correo del documento: " + ex.getMessage());
         }
+    }
+
+    @Transactional
+    public DocumentoOperacionManualResponse regenerarRide(UUID uuid, String motivo) {
+        DocumentoElectronico documento = documentoRepository.findByUuid(uuid)
+                .orElseThrow(() -> new DocumentoRecepcionException("No existe documento con uuid " + uuid));
+
+        if (!ESTADOS_REGENERAR_RIDE.contains(documento.getEstadoActual())) {
+            throw new DocumentoRecepcionException(
+                    "El estado " + documento.getEstadoActual() + " no es compatible con regenerar el RIDE"
+            );
+        }
+
+        DocumentoEstado estadoAnterior = documento.getEstadoActual();
+
+        try {
+            byte[] xmlAutorizado = archivoDocumentoService.leer(uuid, DocumentoArchivoTipo.XML_AUTORIZADO);
+            byte[] ride = documentoWorkflowService.regenerarRide(documento, new String(xmlAutorizado, StandardCharsets.UTF_8));
+            archivoDocumentoService.guardarBytes(documento, DocumentoArchivoTipo.RIDE_PDF, ride);
+
+            if (estadoAnterior == DocumentoEstado.ERROR_RIDE) {
+                estadoDocumentoService.forzarCambio(
+                        documento,
+                        DocumentoEstado.RIDE_GENERADO,
+                        "RIDE regenerado manualmente" + complementarMotivo(motivo),
+                        "MANUAL"
+                );
+            }
+
+            return new DocumentoOperacionManualResponse(
+                    documento.getUuid().toString(),
+                    estadoAnterior.name(),
+                    documento.getEstadoActual().name(),
+                    "REGENERAR_RIDE",
+                    "RIDE regenerado correctamente"
+            );
+        } catch (Exception ex) {
+            throw new DocumentoRecepcionException("No fue posible regenerar el RIDE: " + ex.getMessage());
+        }
+    }
+
+    @Transactional
+    public DocumentoOperacionManualResponse reprocesar(UUID uuid, String motivo) {
+        DocumentoElectronico documento = documentoRepository.findByUuid(uuid)
+                .orElseThrow(() -> new DocumentoRecepcionException("No existe documento con uuid " + uuid));
+
+        if (!ESTADOS_REPROCESAR.contains(documento.getEstadoActual())) {
+            throw new DocumentoRecepcionException(
+                    "El estado " + documento.getEstadoActual() + " no es compatible con reprocesamiento"
+            );
+        }
+
+        DocumentoEstado estadoAnterior = documento.getEstadoActual();
+
+        if (estadoAnterior == DocumentoEstado.ERROR_RIDE) {
+            return regenerarRide(uuid, motivo);
+        }
+
+        if (estadoAnterior == DocumentoEstado.ERROR_CORREO) {
+            DocumentoCorreoReenvioResponse correo = reenviarCorreo(uuid);
+            return new DocumentoOperacionManualResponse(
+                    correo.id(),
+                    estadoAnterior.name(),
+                    correo.estado(),
+                    "REENVIAR_CORREO",
+                    correo.mensaje()
+            );
+        }
+
+        estadoDocumentoService.forzarCambio(
+                documento,
+                DocumentoEstado.VALIDADO,
+                "Documento marcado para reproceso manual" + complementarMotivo(motivo),
+                "MANUAL"
+        );
+        documentoWorkflowService.procesar(documento);
+
+        return new DocumentoOperacionManualResponse(
+                documento.getUuid().toString(),
+                estadoAnterior.name(),
+                documento.getEstadoActual().name(),
+                "REPROCESAR",
+                "Documento reprocesado correctamente"
+        );
+    }
+
+    @Transactional
+    public DocumentoOperacionManualResponse cargarXmlSinFirmar(UUID uuid, MultipartFile xmlFile, String motivo) {
+        DocumentoElectronico documento = documentoRepository.findByUuid(uuid)
+                .orElseThrow(() -> new DocumentoRecepcionException("No existe documento con uuid " + uuid));
+
+        if (!ESTADOS_CARGA_XML_MANUAL.contains(documento.getEstadoActual())) {
+            throw new DocumentoRecepcionException(
+                    "El estado " + documento.getEstadoActual() + " no es compatible con carga manual de XML"
+            );
+        }
+
+        if (xmlFile == null || xmlFile.isEmpty()) {
+            throw new DocumentoRecepcionException("Debes adjuntar un archivo XML sin firmar.");
+        }
+
+        DocumentoEstado estadoAnterior = documento.getEstadoActual();
+
+        try {
+            String xmlPlano = new String(xmlFile.getBytes(), StandardCharsets.UTF_8);
+            if (!xmlPlano.isEmpty() && xmlPlano.charAt(0) == '\uFEFF') {
+                xmlPlano = xmlPlano.substring(1);
+            }
+
+            estadoDocumentoService.forzarCambio(
+                    documento,
+                    DocumentoEstado.VALIDADO,
+                    "Documento preparado para flujo manual con XML cargado" + complementarMotivo(motivo),
+                    "MANUAL_XML"
+            );
+            documentoWorkflowService.procesarDesdeXmlGenerado(documento, xmlPlano.trim());
+
+            return new DocumentoOperacionManualResponse(
+                    documento.getUuid().toString(),
+                    estadoAnterior.name(),
+                    documento.getEstadoActual().name(),
+                    "CARGAR_XML_SIN_FIRMAR",
+                    "XML cargado, firmado y enviado correctamente."
+            );
+        } catch (DocumentoRecepcionException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new DocumentoRecepcionException("No fue posible procesar el XML sin firmar: " + ex.getMessage());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] descargarXml(UUID uuid) {
+        return archivoDocumentoService.leer(uuid, DocumentoArchivoTipo.XML_GENERADO);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] descargarXmlFirmado(UUID uuid) {
+        return archivoDocumentoService.leer(uuid, DocumentoArchivoTipo.XML_FIRMADO);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] descargarXmlAutorizado(UUID uuid) {
+        return archivoDocumentoService.leer(uuid, DocumentoArchivoTipo.XML_AUTORIZADO);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] descargarRide(UUID uuid) {
+        return archivoDocumentoService.leer(uuid, DocumentoArchivoTipo.RIDE_PDF);
+    }
+
+    @Transactional(readOnly = true)
+    public String nombreArchivo(UUID uuid, DocumentoArchivoTipo tipoArchivo) {
+        return archivoDocumentoService.nombreDescarga(uuid, tipoArchivo);
+    }
+
+    @Transactional(readOnly = true)
+    public String mimeType(UUID uuid, DocumentoArchivoTipo tipoArchivo) {
+        return archivoDocumentoService.mimeType(uuid, tipoArchivo);
+    }
+
+    private String complementarMotivo(String motivo) {
+        return motivo == null || motivo.isBlank() ? "" : ". Motivo: " + motivo.trim();
     }
 }

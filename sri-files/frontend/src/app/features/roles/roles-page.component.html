@@ -7,13 +7,15 @@
         <h2>Resumen de roles</h2>
         <p>Base de seguridad actual compatible con el esquema vigente de roles y lista preparada para permisos granulares.</p>
       </div>
-      <label class="filter-field">
-        <span>Rol</span>
-        <select class="form-select form-select-sm" [value]="roleFilter" (change)="onRoleFilterChange(($any($event.target)).value)">
-          <option value="TODOS">Todos</option>
-          <option *ngFor="let role of roles()" [value]="role.codigo">{{ role.nombre }}</option>
-        </select>
-      </label>
+      <div class="roles-toolbar">
+        <label class="filter-field">
+          <span>Rol</span>
+          <select class="form-select form-select-sm" [value]="roleFilter" (change)="onRoleFilterChange(($any($event.target)).value)">
+            <option value="TODOS">Todos</option>
+            <option *ngFor="let role of roles()" [value]="role.codigo">{{ role.nombre }}</option>
+          </select>
+        </label>
+      </div>
     </div>
 
     <div class="role-cards">
@@ -95,6 +97,17 @@
       <span>Descripcion</span>
       <textarea rows="3" [(ngModel)]="editDescripcion"></textarea>
     </label>
+
+    <div class="editor-summary">
+      <div>
+        <span>Permisos seleccionados</span>
+        <strong>{{ selectedPermisosSignal().length }}</strong>
+      </div>
+      <div>
+        <span>Rol base</span>
+        <strong>{{ role.nombre }}</strong>
+      </div>
+    </div>
 
     <div class="permission-groups">
       <section class="permission-group" *ngFor="let group of permisosAgrupados() | keyvalue">

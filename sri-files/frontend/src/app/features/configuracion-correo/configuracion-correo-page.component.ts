@@ -5,7 +5,7 @@ import { catchError, finalize, of } from 'rxjs';
 import { AppAlertService } from '../../core/services/app-alert.service';
 import { CompanyContextService } from '../../core/services/company-context.service';
 import { EmpresasService } from '../../core/services/empresas.service';
-import { Empresa, EmpresaConfiguracion, EmpresaConfiguracionRequest } from '../../models/empresa.model';
+import { CorreoConfiguracion, CorreoConfiguracionRequest, Empresa } from '../../models/empresa.model';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
@@ -24,21 +24,19 @@ export class ConfiguracionCorreoPageComponent {
 
   protected empresas: Empresa[] = [];
   protected empresaSeleccionada: Empresa | null = null;
-  protected configuracion: EmpresaConfiguracion | null = null;
+  protected configuracion: CorreoConfiguracion | null = null;
   protected loadingEmpresas = false;
   protected loadingConfiguracion = false;
   protected saving = false;
   protected errorEmpresas = '';
   protected errorConfiguracion = '';
-  protected certificadoArchivoBase64: string | null = null;
-  protected certificadoArchivoNombre = '';
 
   protected readonly form = this.fb.group({
-    ambienteSri: this.fb.control(1, [Validators.required]),
-    correoNotificaciones: this.fb.control('', [Validators.required, Validators.email]),
-    correoRespuesta: this.fb.control('', [Validators.required, Validators.email]),
-    certificadoNombre: this.fb.control(''),
-    certificadoClave: this.fb.control('')
+    remitente: this.fb.control('', [Validators.required, Validators.email]),
+    nombreRemitente: this.fb.control('', [Validators.required]),
+    enviarXml: this.fb.control(true, [Validators.required]),
+    enviarRide: this.fb.control(true, [Validators.required]),
+    plantillaAsunto: this.fb.control('')
   });
 
   constructor() {
@@ -69,14 +67,12 @@ export class ConfiguracionCorreoPageComponent {
     }
 
     this.form.reset({
-      ambienteSri: this.configuracion.ambienteSri,
-      correoNotificaciones: this.configuracion.correoNotificaciones || '',
-      correoRespuesta: this.configuracion.correoRespuesta || '',
-      certificadoNombre: this.configuracion.certificadoNombre || '',
-      certificadoClave: ''
+      remitente: this.configuracion.remitente || '',
+      nombreRemitente: this.configuracion.nombreRemitente || '',
+      enviarXml: this.configuracion.enviarXml,
+      enviarRide: this.configuracion.enviarRide,
+      plantillaAsunto: this.configuracion.plantillaAsunto || ''
     });
-    this.certificadoArchivoBase64 = null;
-    this.certificadoArchivoNombre = '';
   }
 
   protected guardar(): void {
@@ -85,20 +81,18 @@ export class ConfiguracionCorreoPageComponent {
       return;
     }
 
-    const payload: EmpresaConfiguracionRequest = {
-      ambienteSri: Number(this.form.controls['ambienteSri'].value ?? 1),
-      correoNotificaciones: this.form.controls['correoNotificaciones'].value ?? '',
-      correoRespuesta: this.form.controls['correoRespuesta'].value ?? '',
-      certificadoNombre: this.form.controls['certificadoNombre'].value ?? '',
-      certificadoBase64: this.certificadoArchivoBase64,
-      certificadoClave: this.form.controls['certificadoClave'].value || null,
-      limpiarCertificado: false
+    const payload: CorreoConfiguracionRequest = {
+      remitente: this.form.controls['remitente'].value ?? '',
+      nombreRemitente: this.form.controls['nombreRemitente'].value ?? '',
+      enviarXml: Boolean(this.form.controls['enviarXml'].value),
+      enviarRide: Boolean(this.form.controls['enviarRide'].value),
+      plantillaAsunto: this.form.controls['plantillaAsunto'].value ?? ''
     };
 
     this.saving = true;
 
     this.empresasService
-      .actualizarConfiguracion(this.empresaSeleccionada.id, payload)
+      .actualizarConfiguracionCorreo(this.empresaSeleccionada.id, payload)
       .pipe(
         catchError(() => {
           this.alerts.error('No se pudo guardar', 'El backend no pudo actualizar la configuracion de correo.');
@@ -115,71 +109,7 @@ export class ConfiguracionCorreoPageComponent {
 
         this.configuracion = configuracion;
         this.restaurar();
-        this.alerts.success('Configuracion actualizada', 'La configuracion de correo y ambiente fue guardada correctamente.');
-      });
-  }
-
-  protected onCertificadoSeleccionado(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    const archivo = input?.files?.[0];
-
-    if (!archivo) {
-      this.certificadoArchivoBase64 = null;
-      this.certificadoArchivoNombre = '';
-      return;
-    }
-
-    this.certificadoArchivoNombre = archivo.name;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
-      const base64 = result.includes(',') ? result.split(',')[1] : result;
-      this.certificadoArchivoBase64 = base64 || null;
-    };
-    reader.onerror = () => {
-      this.certificadoArchivoBase64 = null;
-      this.certificadoArchivoNombre = '';
-      this.alerts.error('Archivo invalido', 'No se pudo leer el certificado seleccionado.');
-    };
-    reader.readAsDataURL(archivo);
-  }
-
-  protected limpiarCertificadoActual(): void {
-    if (!this.empresaSeleccionada || this.saving) {
-      return;
-    }
-
-    const payload: EmpresaConfiguracionRequest = {
-      ambienteSri: Number(this.form.controls['ambienteSri'].value ?? 1),
-      correoNotificaciones: this.form.controls['correoNotificaciones'].value ?? '',
-      correoRespuesta: this.form.controls['correoRespuesta'].value ?? '',
-      certificadoNombre: '',
-      certificadoBase64: null,
-      certificadoClave: null,
-      limpiarCertificado: true
-    };
-
-    this.saving = true;
-
-    this.empresasService
-      .actualizarConfiguracion(this.empresaSeleccionada.id, payload)
-      .pipe(
-        catchError(() => {
-          this.alerts.error('No se pudo limpiar', 'El backend no pudo eliminar el certificado actual.');
-          return of(null);
-        }),
-        finalize(() => {
-          this.saving = false;
-        })
-      )
-      .subscribe((configuracion) => {
-        if (!configuracion) {
-          return;
-        }
-
-        this.configuracion = configuracion;
-        this.restaurar();
-        this.alerts.success('Certificado limpiado', 'El certificado actual fue eliminado de la configuracion.');
+        this.alerts.success('Configuracion actualizada', 'La configuracion de correo fue guardada correctamente.');
       });
   }
 
@@ -217,7 +147,7 @@ export class ConfiguracionCorreoPageComponent {
     this.configuracion = null;
 
     this.empresasService
-      .obtenerConfiguracion(empresaId)
+      .obtenerConfiguracionCorreo(empresaId)
       .pipe(
         catchError(() => {
           this.errorConfiguracion = 'No fue posible cargar la configuracion actual de la empresa seleccionada.';

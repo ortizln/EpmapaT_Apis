@@ -16,6 +16,9 @@ export class AccessControlService {
     { codigo: 'DOCUMENTO_VER', nombre: 'Ver documentos', descripcion: 'Permite consultar la bandeja documental y sus detalles.', categoria: 'Documentos' },
     { codigo: 'DOCUMENTO_CREAR', nombre: 'Crear documentos', descripcion: 'Permite registrar nuevas recepciones documentales.', categoria: 'Documentos' },
     { codigo: 'DOCUMENTO_AUTORIZACION_CONSULTAR', nombre: 'Consultar autorizacion', descripcion: 'Permite lanzar consultas manuales al flujo de autorizacion.', categoria: 'Documentos' },
+    { codigo: 'DOCUMENTO_REPROCESAR', nombre: 'Reprocesar documentos', descripcion: 'Permite programar reprocesamientos manuales del flujo documental.', categoria: 'Documentos' },
+    { codigo: 'DOCUMENTO_REGENERAR_RIDE', nombre: 'Regenerar RIDE', descripcion: 'Permite regenerar manualmente el RIDE del documento.', categoria: 'Documentos' },
+    { codigo: 'DOCUMENTO_DESCARGAR', nombre: 'Descargar archivos', descripcion: 'Permite descargar XML, RIDE y archivos asociados al documento.', categoria: 'Documentos' },
     { codigo: 'DOCUMENTO_CORREO_REENVIAR', nombre: 'Reenviar correo', descripcion: 'Permite reenviar comprobantes por correo.', categoria: 'Documentos' },
     { codigo: 'DOCUMENTO_AUDITORIA_VER', nombre: 'Ver auditoria documental', descripcion: 'Permite consultar el historial reciente de cambios documentales.', categoria: 'Control' },
     { codigo: 'MONITOREO_VER', nombre: 'Ver monitoreo', descripcion: 'Permite acceder al estado operativo del backend.', categoria: 'Control' },
@@ -50,6 +53,9 @@ export class AccessControlService {
         'DOCUMENTO_VER',
         'DOCUMENTO_CREAR',
         'DOCUMENTO_AUTORIZACION_CONSULTAR',
+        'DOCUMENTO_REPROCESAR',
+        'DOCUMENTO_REGENERAR_RIDE',
+        'DOCUMENTO_DESCARGAR',
         'DOCUMENTO_CORREO_REENVIAR'
       ]
     }

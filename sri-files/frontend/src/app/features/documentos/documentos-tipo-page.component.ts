@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, effect, inject, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
+import { AppAlertService } from '../../core/services/app-alert.service';
 import { CompanyContextService } from '../../core/services/company-context.service';
 import { DocumentoContratoService } from '../../core/services/documento-contrato.service';
 import { DocumentoListadoResponse, DocumentoResumen, TipoDocumento } from '../../models/documento.model';
@@ -18,6 +19,7 @@ import { HasPermissionDirective } from '../../shared/directives/has-permission.d
 export class DocumentosTipoPageComponent {
   private readonly companyContext = inject(CompanyContextService);
   private readonly documentoService = inject(DocumentoContratoService);
+  private readonly appAlertService = inject(AppAlertService);
   private readonly router = inject(Router);
   private debounceBusquedaTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -36,6 +38,7 @@ export class DocumentosTipoPageComponent {
   protected totalItems = 0;
   protected loading = false;
   protected error = '';
+  protected procesandoXmlRapidoId: string | null = null;
 
   constructor() {
     this.companyContext.cargarEmpresas();
@@ -98,6 +101,35 @@ export class DocumentosTipoPageComponent {
     }
 
     this.router.navigate([this.newRoute()]);
+  }
+
+  protected cargarXmlRapido(payload: { id: string; file: File }): void {
+    if (this.procesandoXmlRapidoId) {
+      return;
+    }
+
+    const motivo = window.prompt('Motivo de la carga manual del XML (opcional):', '') ?? '';
+    this.procesandoXmlRapidoId = payload.id;
+
+    this.documentoService
+      .cargarXmlSinFirmar(payload.id, payload.file, motivo)
+      .pipe(
+        catchError(() => {
+          this.appAlertService.error('No se pudo procesar el XML', 'El backend no pudo firmar y enviar el XML cargado desde esta bandeja.');
+          return of(null);
+        }),
+        finalize(() => {
+          this.procesandoXmlRapidoId = null;
+        })
+      )
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+
+        this.appAlertService.success('XML procesado', response.mensaje || 'El documento fue procesado desde el XML cargado.');
+        this.cargarBandeja();
+      });
   }
 
   private cargarBandeja(): void {

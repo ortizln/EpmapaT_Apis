@@ -1,4 +1,4 @@
-<app-page-header eyebrow="Administracion" title="Configuracion de correo" description="Gestiona ambiente SRI y correos base usando la configuracion real expuesta por el backend actual." badge="Conectado" />
+<app-page-header eyebrow="Administracion" title="Configuracion de correo" description="Gestiona remitente, nombre visual y reglas base de envio usando el endpoint real del backend." badge="Conectado" />
 <div class="context-banner" *ngIf="companyContext.empresaActiva() as empresaActiva"><span>Empresa activa</span><strong>{{ empresaActiva.razonSocial }}</strong><small>{{ empresaActiva.ruc }}</small></div>
 <p class="feedback feedback--loading" *ngIf="loadingEmpresas">Cargando empresas disponibles...</p>
 <p class="feedback feedback--error" *ngIf="errorEmpresas">{{ errorEmpresas }}</p>
@@ -12,24 +12,22 @@
     </div>
   </article>
   <article class="panel config-panel">
-    <div class="panel__header"><div><h2>Configuracion operativa</h2><p>Edita la informacion que hoy maneja el backend: ambiente, correo de notificaciones y correo de respuesta.</p></div></div>
+    <div class="panel__header"><div><h2>Configuracion operativa</h2><p>Edita remitente, nombre visible, envio de XML/RIDE y plantilla base del asunto.</p></div></div>
     <p class="feedback feedback--loading" *ngIf="loadingConfiguracion">Cargando configuracion actual...</p>
     <p class="feedback feedback--error" *ngIf="errorConfiguracion">{{ errorConfiguracion }}</p>
     <form class="config-form" [formGroup]="form" (ngSubmit)="guardar()" *ngIf="empresaSeleccionada && !loadingConfiguracion">
-      <label><span class="form-label">Ambiente SRI</span><select formControlName="ambienteSri"><option [value]="1">Pruebas</option><option [value]="2">Produccion</option></select></label>
-      <label><span class="form-label">Correo de notificaciones</span><input type="email" formControlName="correoNotificaciones" placeholder="notificaciones@empresa.com" /></label>
-      <label><span class="form-label">Correo de respuesta</span><input type="email" formControlName="correoRespuesta" placeholder="respuesta@empresa.com" /></label>
-      <label><span class="form-label">Nombre del certificado</span><input type="text" formControlName="certificadoNombre" placeholder="certificado-firma.p12" /></label>
-      <label class="field-block"><span class="form-label">Archivo de certificado</span><input type="file" accept=".p12,.pfx,application/x-pkcs12" (change)="onCertificadoSeleccionado($event)" /><small>{{ certificadoArchivoNombre || 'Selecciona un archivo .p12 o .pfx para reemplazar el certificado actual.' }}</small></label>
-      <label><span class="form-label">Clave del certificado</span><input type="password" formControlName="certificadoClave" placeholder="Ingresa la clave del certificado" /></label>
+      <label><span class="form-label">Correo remitente</span><input type="email" formControlName="remitente" placeholder="facturacion@empresa.com" /></label>
+      <label><span class="form-label">Nombre del remitente</span><input type="text" formControlName="nombreRemitente" placeholder="Facturacion EPMAPA-T" /></label>
+      <label class="field-checkbox"><input type="checkbox" formControlName="enviarXml" /><span>Adjuntar XML en el correo</span></label>
+      <label class="field-checkbox"><input type="checkbox" formControlName="enviarRide" /><span>Adjuntar RIDE en el correo</span></label>
+      <label class="field-block"><span class="form-label">Plantilla del asunto</span><textarea rows="3" formControlName="plantillaAsunto" placeholder="Factura {numeroDocumento} - {razonSocial}"></textarea></label>
       <div class="form-meta" *ngIf="configuracion">
-        <div><span>Certificado configurado</span><strong>{{ configuracion.certificadoConfigurado ? 'Si' : 'No' }}</strong></div>
-        <div><span>Alias actual</span><strong>{{ configuracion.certificadoAlias || 'No registrado' }}</strong></div>
-        <div><span>Vigencia hasta</span><strong>{{ configuracion.certificadoVigenciaHasta || 'No registrada' }}</strong></div>
+        <div><span>Remitente actual</span><strong>{{ configuracion.remitente || 'No registrado' }}</strong></div>
+        <div><span>XML adjunto</span><strong>{{ configuracion.enviarXml ? 'Si' : 'No' }}</strong></div>
+        <div><span>RIDE adjunto</span><strong>{{ configuracion.enviarRide ? 'Si' : 'No' }}</strong></div>
       </div>
       <div class="form-actions">
         <button type="button" class="secondary-button" (click)="restaurar()" [disabled]="saving || !configuracion">Restaurar</button>
-        <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="button" class="secondary-button secondary-button--danger" (click)="limpiarCertificadoActual()" [disabled]="saving || !empresaSeleccionada || !configuracion?.certificadoConfigurado">Limpiar certificado</button>
         <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="submit" [disabled]="saving || form.invalid || !empresaSeleccionada">{{ saving ? 'Guardando...' : 'Guardar configuracion' }}</button>
       </div>
     </form>

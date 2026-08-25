@@ -45,6 +45,7 @@ public class DocumentoContratoService {
                         campo("fechaEmision", "date", true, "Fecha ISO del comprobante", "2026-08-14"),
                         campo("secuencial", "string", true, "Secuencial de 9 digitos", "000000123"),
                         campo("moneda", "string", false, "Moneda del documento", "USD"),
+                        campo("formaPago", "string", false, "Codigo de forma de pago SRI", "20"),
                         campo("subtotal", "number", true, "Subtotal sin impuestos", "10.00"),
                         campo("impuestos", "number", true, "Total impuestos", "1.20"),
                         campo("total", "number", true, "Total del comprobante", "11.20")
@@ -61,6 +62,7 @@ public class DocumentoContratoService {
                         campo("fechaEmision", "date", true, "Fecha ISO del comprobante", "2026-08-14"),
                         campo("secuencial", "string", true, "Secuencial de 9 digitos", "000000128"),
                         campo("moneda", "string", false, "Moneda del documento", "USD"),
+                        campo("formaPago", "string", false, "Codigo de forma de pago SRI", "20"),
                         campo("subtotal", "number", true, "Subtotal sin impuestos", "100.00"),
                         campo("impuestos", "number", true, "Total impuestos", "12.00"),
                         campo("total", "number", true, "Total del comprobante", "112.00")
@@ -77,6 +79,7 @@ public class DocumentoContratoService {
                         campo("fechaEmision", "date", true, "Fecha ISO del comprobante", "2026-08-14"),
                         campo("secuencial", "string", true, "Secuencial de 9 digitos", "000000124"),
                         campo("moneda", "string", false, "Moneda del documento", "USD"),
+                        campo("formaPago", "string", false, "Codigo de forma de pago SRI", "20"),
                         campo("subtotal", "number", true, "Base total sin impuestos", "25.00"),
                         campo("impuestos", "number", true, "Impuestos totales", "0.00"),
                         campo("total", "number", true, "Valor de modificacion", "25.00"),
@@ -95,6 +98,7 @@ public class DocumentoContratoService {
                                 campo("precioUnitario", "number", true, "Precio unitario", "10.00"),
                                 campo("descuento", "number", false, "Descuento aplicado", "0.00"),
                                 campo("precioTotalSinImpuesto", "number", false, "Subtotal del detalle", "20.00"),
+                                campo("codigoPorcentaje", "string", false, "Codigo de porcentaje IVA SRI", "4"),
                                 campo("baseImponible", "number", false, "Base imponible del impuesto", "20.00"),
                                 campo("valorImpuesto", "number", false, "Valor del impuesto del detalle", "0.00")
                         )
@@ -110,6 +114,7 @@ public class DocumentoContratoService {
                         campo("fechaEmision", "date", true, "Fecha ISO del comprobante", "2026-08-14"),
                         campo("secuencial", "string", true, "Secuencial de 9 digitos", "000000125"),
                         campo("moneda", "string", false, "Moneda del documento", "USD"),
+                        campo("formaPago", "string", false, "Codigo de forma de pago SRI", "20"),
                         campo("subtotal", "number", true, "Base total sin impuestos", "25.00"),
                         campo("impuestos", "number", true, "Impuestos totales", "0.00"),
                         campo("total", "number", true, "Valor total del debito", "25.00"),
@@ -219,7 +224,8 @@ public class DocumentoContratoService {
                         campo("codigo", "string", false, "Codigo principal", "ITEM-1"),
                         campo("descripcion", "string", true, "Descripcion del item", "Servicio de agua"),
                         campo("cantidad", "number", true, "Cantidad", "1"),
-                        campo("precioUnitario", "number", true, "Precio unitario", "10.00")
+                        campo("precioUnitario", "number", true, "Precio unitario", "10.00"),
+                        campo("codigoPorcentaje", "string", false, "Codigo de porcentaje IVA SRI", "4")
                 )
         );
     }

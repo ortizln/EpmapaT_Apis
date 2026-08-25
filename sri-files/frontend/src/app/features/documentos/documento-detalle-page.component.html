@@ -82,20 +82,39 @@
     <section class="panel action-card">
       <div class="action-card__header">
         <div>
-          <span class="eyebrow">SRI</span>
-          <h3>Consulta manual de autorizacion</h3>
-          <p>Accion operativa conectada al endpoint real del backend para validar el estado actual del documento.</p>
+          <span class="eyebrow">Acciones</span>
+          <h3>Operaciones manuales</h3>
+          <p>Controles operativos para recuperar el flujo cuando un documento requiere intervencion o regeneracion manual.</p>
         </div>
-
-        <button
-          *appHasPermission="'DOCUMENTO_AUTORIZACION_CONSULTAR'"
-          type="button"
-          class="secondary-button"
-          (click)="consultarAutorizacionManual()"
-          [disabled]="consultandoAutorizacion() || !detalleDocumento.id"
-        >
-          {{ consultandoAutorizacion() ? 'Consultando...' : 'Consultar autorizacion' }}
-        </button>
+        <div class="xml-card__actions">
+          <button
+            *appHasPermission="'DOCUMENTO_REPROCESAR'"
+            type="button"
+            class="secondary-button"
+            (click)="reprocesarDocumento()"
+            [disabled]="reprocesando() || !detalleDocumento.id || !puedeReprocesar()"
+          >
+            {{ reprocesando() ? 'Reprocesando...' : 'Reprocesar' }}
+          </button>
+          <button
+            *appHasPermission="'DOCUMENTO_REGENERAR_RIDE'"
+            type="button"
+            class="secondary-button"
+            (click)="regenerarRideDocumento()"
+            [disabled]="regenerandoRide() || !detalleDocumento.id || !puedeRegenerarRide()"
+          >
+            {{ regenerandoRide() ? 'Regenerando...' : 'Regenerar RIDE' }}
+          </button>
+          <button
+            *appHasPermission="'DOCUMENTO_AUTORIZACION_CONSULTAR'"
+            type="button"
+            class="secondary-button"
+            (click)="consultarAutorizacionManual()"
+            [disabled]="consultandoAutorizacion() || !detalleDocumento.id"
+          >
+            {{ consultandoAutorizacion() ? 'Consultando...' : 'Consultar autorizacion' }}
+          </button>
+        </div>
       </div>
 
       <div class="feedback feedback--error" *ngIf="autorizacionError()">{{ autorizacionError() }}</div>
@@ -173,15 +192,47 @@
         </div>
       </div>
 
-      <div class="tab-panel" *ngIf="activeTab() === 'estado'">
+      <div class="tab-panel" *ngIf="activeTab() === 'jsonXml'">
         <div class="info-grid">
-          <div><span>ID estado</span><strong>{{ estado()?.id || 'N/D' }}</strong></div>
-          <div><span>Estado operativo</span><strong>{{ estado()?.estado || 'N/D' }}</strong></div>
-          <div><span>Intervencion</span><strong>{{ estado()?.requiereIntervencion ? 'Si' : 'No' }}</strong></div>
+          <div><span>UUID</span><strong>{{ detalleDocumento.id }}</strong></div>
+          <div><span>External ID</span><strong>{{ detalleDocumento.externalId || 'N/D' }}</strong></div>
+          <div><span>Clave de acceso</span><strong>{{ detalleDocumento.claveAcceso || 'N/D' }}</strong></div>
         </div>
-      </div>
 
-      <div class="tab-panel" *ngIf="activeTab() === 'archivos'">
+        <div class="tab-panel--placeholder">
+          <strong>JSON operativo</strong>
+          <p>El backend actual no expone aun el JSON original completo del documento. Esta seccion muestra los identificadores y datos base disponibles del contrato real.</p>
+        </div>
+
+        <div class="manual-upload-card">
+          <div class="manual-upload-card__header">
+            <div>
+              <strong>XML sin firmar</strong>
+              <p>Carga un XML base del documento para firmarlo, enviarlo al SRI, recuperar el autorizado y registrar el flujo completo en historial.</p>
+            </div>
+            <button
+              *appHasPermission="'DOCUMENTO_REPROCESAR'"
+              type="button"
+              class="secondary-button"
+              (click)="cargarXmlSinFirmar(xmlSinFirmarInput)"
+              [disabled]="cargandoXmlManual() || !xmlSinFirmarInput.files?.length"
+            >
+              {{ cargandoXmlManual() ? 'Procesando XML...' : 'Cargar y procesar XML' }}
+            </button>
+          </div>
+
+          <label class="manual-upload-card__field">
+            <span>Archivo XML</span>
+            <input
+              #xmlSinFirmarInput
+              type="file"
+              accept=".xml,text/xml,application/xml"
+              (change)="seleccionarXmlSinFirmar($event)"
+            />
+            <small>{{ xmlSinFirmarNombre() || 'Selecciona un XML sin firmar para este documento.' }}</small>
+          </label>
+        </div>
+
         <div class="files-header">
           <div>
             <strong>XML autorizado</strong>
@@ -209,14 +260,41 @@
             </div>
 
             <div class="xml-card__actions">
-              <button *appHasPermission="'DOCUMENTO_VER'" type="button" class="secondary-button" (click)="xmlModalOpen.set(true)">Ver ampliado</button>
-              <button *appHasPermission="'DOCUMENTO_VER'" type="button" class="secondary-button" (click)="copiarXmlAutorizado()">Copiar XML</button>
-              <button *appHasPermission="'DOCUMENTO_VER'" type="button" class="secondary-button" (click)="descargarXmlAutorizado()">Descargar XML</button>
+              <button *appHasPermission="'DOCUMENTO_DESCARGAR'" type="button" class="secondary-button" (click)="xmlModalOpen.set(true)">Ver ampliado</button>
+              <button *appHasPermission="'DOCUMENTO_DESCARGAR'" type="button" class="secondary-button" (click)="copiarXmlAutorizado()">Copiar XML</button>
+              <button *appHasPermission="'DOCUMENTO_DESCARGAR'" type="button" class="secondary-button" (click)="descargarXmlAutorizado()">Descargar XML</button>
             </div>
           </div>
           <div class="xml-card__summary">
             <span>{{ xmlLineCount() }} lineas</span>
             <span>{{ xmlSizeLabel() }}</span>
+          </div>
+          <div class="xml-search">
+            <label class="xml-search__field">
+              <span>Buscar en XML</span>
+              <input
+                type="text"
+                [value]="xmlSearch()"
+                (input)="updateXmlSearch($any($event.target).value)"
+                placeholder="Etiqueta, valor o texto"
+              />
+            </label>
+            <div class="xml-search__meta">
+              <span *ngIf="xmlSearch().trim()">
+                {{ xmlSearchMatchCount() }} coincidencia{{ xmlSearchMatchCount() === 1 ? '' : 's' }}
+              </span>
+              <button *ngIf="xmlSearch().trim()" type="button" class="secondary-button" (click)="clearXmlSearch()">Limpiar</button>
+            </div>
+          </div>
+          <div class="xml-search-results" *ngIf="xmlSearch().trim()">
+            <article class="xml-search-result" *ngFor="let item of xmlSearchResults()">
+              <strong>Linea {{ item.lineNumber }}</strong>
+              <p>{{ item.content }}</p>
+            </article>
+            <div class="tab-panel--placeholder" *ngIf="!xmlSearchMatchCount()">
+              <strong>Sin coincidencias</strong>
+              <p>No se encontraron resultados para el texto ingresado dentro del XML cargado.</p>
+            </div>
           </div>
           <pre>{{ xmlFormateado() }}</pre>
         </div>
@@ -225,6 +303,45 @@
           <div class="tab-panel--placeholder">
             <strong>Sin XML cargado</strong>
             <p>Ejecuta la consulta por clave para intentar recuperar el XML autorizado desde el backend actual.</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'archivos'">
+        <div class="feedback feedback--loading" *ngIf="loadingArchivos()">Cargando archivos registrados del documento...</div>
+        <div class="feedback feedback--error" *ngIf="archivosError()">{{ archivosError() }}</div>
+
+        <div class="table-shell" *ngIf="archivosItems().length; else emptyFiles">
+          <table>
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Nombre</th>
+                <th>Mime</th>
+                <th>Tamano</th>
+                <th>Fecha</th>
+                <th>Accion</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of archivosItems()">
+                <td>{{ item.tipo }}</td>
+                <td>{{ item.nombre }}</td>
+                <td>{{ item.mimeType }}</td>
+                <td>{{ item.tamanio || 0 }} B</td>
+                <td>{{ item.fechaCreacion || 'Sin fecha' }}</td>
+                <td>
+                  <button *appHasPermission="'DOCUMENTO_DESCARGAR'" type="button" class="secondary-button" (click)="descargarArchivo(item.tipo)">Descargar</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #emptyFiles>
+          <div class="tab-panel--placeholder">
+            <strong>Sin archivos registrados</strong>
+            <p>Cuando el backend tenga archivos asociados al documento, se mostraran aqui con su tipo y accion de descarga.</p>
           </div>
         </ng-template>
       </div>
@@ -258,7 +375,27 @@
         </div>
       </div>
 
-      <div class="tab-panel" *ngIf="activeTab() === 'intentosSri'">
+      <div class="tab-panel" *ngIf="activeTab() === 'sri'">
+        <div class="diagnostic-grid">
+          <article class="diagnostic-card">
+            <span>Estado operativo</span>
+            <strong>{{ estadoActual() }}</strong>
+            <p>Estado actual reportado por el backend para decidir acciones sobre el flujo SRI.</p>
+          </article>
+
+          <article class="diagnostic-card">
+            <span>Reprocesamiento</span>
+            <strong>{{ puedeReprocesar() ? 'Disponible' : 'No disponible' }}</strong>
+            <p>Solo se habilita cuando el estado actual admite volver a ejecutar el flujo.</p>
+          </article>
+
+          <article class="diagnostic-card">
+            <span>Regeneracion RIDE</span>
+            <strong>{{ puedeRegenerarRide() ? 'Disponible' : 'No disponible' }}</strong>
+            <p>Se habilita cuando ya existe una autorizacion o un error asociado al RIDE.</p>
+          </article>
+        </div>
+
         <div class="feedback feedback--loading" *ngIf="loadingIntentosSri()">Cargando intentos SRI del documento...</div>
         <div class="feedback feedback--error" *ngIf="intentosSriError()">{{ intentosSriError() }}</div>
 
@@ -344,7 +481,7 @@
         </div>
       </div>
 
-      <div class="tab-panel" *ngIf="activeTab() === 'correo'">
+      <div class="tab-panel" *ngIf="activeTab() === 'correos'">
         <div class="action-card__header">
           <div>
             <span class="eyebrow">Notificacion</span>
@@ -401,6 +538,26 @@
           <p *ngIf="seguimientoCorreo()?.eventos?.length">Ya se estan mostrando eventos reales de historial y errores asociados al envio de correo.</p>
         </div>
       </div>
+
+      <div class="tab-panel" *ngIf="activeTab() === 'auditoria'">
+        <div class="feedback feedback--loading" *ngIf="loadingAuditoria()">Cargando auditoria del documento...</div>
+        <div class="feedback feedback--error" *ngIf="auditoriaError()">{{ auditoriaError() }}</div>
+
+        <div class="timeline-preview" *ngIf="auditoriaItems().length; else emptyAuditoria">
+          <article class="timeline-preview__item" *ngFor="let item of auditoriaItems()">
+            <strong>{{ item.estadoNuevo || 'SIN ESTADO' }}</strong>
+            <p>{{ item.descripcion || 'Sin descripcion registrada.' }}</p>
+            <span>{{ item.origen || 'SIN ORIGEN' }} · {{ item.createdAt || 'Sin fecha' }}</span>
+          </article>
+        </div>
+
+        <ng-template #emptyAuditoria>
+          <div class="tab-panel--placeholder">
+            <strong>Sin auditoria especifica del documento</strong>
+            <p>Cuando existan eventos recientes asociados a este UUID dentro de la auditoria documental, se mostraran aqui.</p>
+          </div>
+        </ng-template>
+      </div>
     </section>
 
     <app-modal
@@ -414,6 +571,29 @@
         <div class="xml-card__summary">
           <span>{{ xmlLineCount() }} lineas</span>
           <span>{{ xmlSizeLabel() }}</span>
+        </div>
+        <div class="xml-search" *ngIf="xmlAutorizado()">
+          <label class="xml-search__field">
+            <span>Buscar en XML</span>
+            <input
+              type="text"
+              [value]="xmlSearch()"
+              (input)="updateXmlSearch($any($event.target).value)"
+              placeholder="Etiqueta, valor o texto"
+            />
+          </label>
+          <div class="xml-search__meta">
+            <span *ngIf="xmlSearch().trim()">
+              {{ xmlSearchMatchCount() }} coincidencia{{ xmlSearchMatchCount() === 1 ? '' : 's' }}
+            </span>
+            <button *ngIf="xmlSearch().trim()" type="button" class="secondary-button" (click)="clearXmlSearch()">Limpiar</button>
+          </div>
+        </div>
+        <div class="xml-search-results" *ngIf="xmlAutorizado() && xmlSearch().trim()">
+          <article class="xml-search-result" *ngFor="let item of xmlSearchResults()">
+            <strong>Linea {{ item.lineNumber }}</strong>
+            <p>{{ item.content }}</p>
+          </article>
         </div>
         <pre>{{ xmlFormateado() || 'No hay XML autorizado cargado.' }}</pre>
       </div>

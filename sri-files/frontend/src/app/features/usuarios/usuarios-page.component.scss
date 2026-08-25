@@ -51,9 +51,38 @@
   gap: var(--space-3);
 }
 
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
 .user-form label {
   display: grid;
   gap: 0.35rem;
+}
+
+.form-highlight {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(33, 107, 212, 0.16);
+  background: linear-gradient(180deg, rgba(33, 107, 212, 0.08), rgba(27, 154, 131, 0.05));
+}
+
+.form-highlight strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--color-text);
+}
+
+.form-highlight p {
+  margin: 0;
+  color: var(--color-text-soft);
+}
+
+.form-highlight--muted {
+  border-color: rgba(216, 224, 234, 0.95);
+  background: rgba(247, 249, 252, 0.9);
 }
 
 .user-form button,
@@ -304,6 +333,10 @@ tbody td {
 }
 
 @media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
   .panel,
   .reset-panel {
     padding: var(--space-4);

@@ -6,6 +6,10 @@ public record DocumentoListadoItemResponse(
         String numeroDocumento,
         String razonSocial,
         String fechaEmision,
-        String estado
+        String estado,
+        boolean tieneXmlGenerado,
+        boolean tieneXmlFirmado,
+        boolean tieneXmlAutorizado,
+        boolean tieneRide
 ) {
 }

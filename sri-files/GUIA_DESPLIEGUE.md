@@ -39,8 +39,13 @@ SERVER_PORT=9090
 SPRING_DATASOURCE_URL=jdbc:postgresql://IP_O_HOST:5432/BASE_DATOS
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=CLAVE_DB
-ERP_BACKEND_BASE_URL=http://IP_BACKEND_ERP:9080
-EMAIL_MS_BASE_URL=http://IP_SERVICIO_EMAIL:9099
+SPRING_MAIL_HOST=smtp.tudominio.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=notificaciones@tudominio.com
+SPRING_MAIL_PASSWORD=CLAVE_SMTP
+APP_MAIL_FROM=notificaciones@tudominio.com
+APP_MAIL_REPLY_TO=soporte@tudominio.com
+APP_MAIL_DISPLAY_NAME=SRI Files
 ```
 
 ### Ejecucion
@@ -57,6 +62,7 @@ chmod +x deploy-backend-docker.sh
 - Construye la imagen Docker
 - Elimina el contenedor anterior si existe
 - Levanta el backend con `--env-file`
+- Habilita el envio de correo SMTP desde `sri-files`
 
 ## 2. Frontend
 

@@ -4,7 +4,10 @@
       <h2>Bandeja de documentos</h2>
       <p>Listado conectado al backend con filtros y paginacion.</p>
     </div>
-    <span class="table-card__count">{{ totalItems() }} registros</span>
+    <div class="table-card__header-actions">
+      <span class="table-card__count">{{ totalItems() }} registros</span>
+      <button type="button" class="secondary-button" (click)="onExportar()">Exportar CSV</button>
+    </div>
   </div>
 
   <div class="filters">
@@ -44,6 +47,8 @@
           <th>Cliente</th>
           <th>Fecha</th>
           <th>Estado</th>
+          <th>Pipeline</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -60,6 +65,24 @@
           <td>{{ documento.razonSocial }}</td>
           <td>{{ documento.fechaEmision }}</td>
           <td><app-status-chip [label]="documento.estado" /></td>
+          <td>
+            <div class="pipeline-chips">
+              <span class="pipeline-chip" [class.pipeline-chip--ready]="documento.tieneXmlGenerado">XML</span>
+              <span class="pipeline-chip" [class.pipeline-chip--ready]="documento.tieneXmlFirmado">Firma</span>
+              <span class="pipeline-chip" [class.pipeline-chip--ready]="documento.tieneXmlAutorizado">SRI</span>
+              <span class="pipeline-chip" [class.pipeline-chip--ready]="documento.tieneRide">RIDE</span>
+            </div>
+          </td>
+          <td class="table-actions" (click)="$event.stopPropagation()">
+            <label *appHasPermission="'DOCUMENTO_REPROCESAR'" class="table-actions__upload">
+              <span>Cargar XML</span>
+              <input
+                type="file"
+                accept=".xml,text/xml,application/xml"
+                (change)="seleccionarXmlRapido(documento.id, $event)"
+              />
+            </label>
+          </td>
         </tr>
       </tbody>
     </table>

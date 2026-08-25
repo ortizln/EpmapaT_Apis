@@ -83,6 +83,65 @@
         <span class="section-tag">{{ seccion.campos.length }} campos</span>
       </header>
 
+      <div class="helper-strip" *ngIf="hasClienteHelper(seccion)">
+        <label class="field-card field-card--full helper-card">
+          <span class="form-label">Usar cliente / beneficiario registrado</span>
+          <select (change)="applyClienteToReceptor(($any($event.target)).value)">
+            <option value="">Selecciona un cliente registrado</option>
+            <option *ngFor="let cliente of clientesCatalogo()" [value]="cliente.id">
+              {{ cliente.identificacion }} - {{ cliente.razonSocial }}
+            </option>
+          </select>
+          <small>Completa automaticamente identificacion, razon social y datos de contacto del receptor.</small>
+        </label>
+      </div>
+
+      <div class="helper-strip" *ngIf="hasRetencionXmlHelper(seccion)">
+        <div class="field-card field-card--full helper-card">
+          <span class="form-label">Cargar XML sin firmar</span>
+          <input type="file" accept=".xml,application/xml,text/xml" (change)="onRetencionXmlSelected($event)" />
+          <small>{{ xmlRetencionNombre || 'Selecciona el XML base de la retencion para completar el campo automaticamente.' }}</small>
+          <small class="field-error" *ngIf="xmlRetencionError">{{ xmlRetencionError }}</small>
+          <div class="helper-actions">
+            <button type="button" class="secondary-button" (click)="clearRetencionXml()" [disabled]="!xmlRetencionNombre">
+              Limpiar XML
+            </button>
+          </div>
+
+          <div class="xml-review" *ngIf="xmlRetencionNombre && !xmlRetencionError">
+            <div class="xml-review__grid" *ngIf="xmlRetencionMetadata.length > 0">
+              <article class="xml-review__meta" *ngFor="let item of xmlRetencionMetadata">
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </article>
+            </div>
+
+            <div class="feedback feedback--error" *ngIf="xmlRetencionValidationErrors.length > 0">
+              <strong>Errores detectados</strong>
+              <ul>
+                <li *ngFor="let error of xmlRetencionValidationErrors">{{ error }}</li>
+              </ul>
+            </div>
+
+            <div class="feedback feedback--warning" *ngIf="xmlRetencionWarnings.length > 0">
+              <strong>Advertencias</strong>
+              <ul>
+                <li *ngFor="let warning of xmlRetencionWarnings">{{ warning }}</li>
+              </ul>
+            </div>
+
+            <div class="feedback feedback--success" *ngIf="xmlRetencionValidationErrors.length === 0">
+              El XML supera la validacion previa local y esta listo para enviarse al backend.
+            </div>
+
+            <label class="xml-preview">
+              <span class="form-label">Vista previa del XML</span>
+              <textarea [value]="xmlRetencionPreview" rows="14" readonly></textarea>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="field-grid" [formGroup]="getSimpleSectionGroup(seccion.nombre)">
         <label class="field-card" *ngFor="let campo of seccion.campos">
           <div class="field-card__top">
@@ -154,6 +213,32 @@
             >
               Quitar
             </button>
+          </div>
+
+          <div class="helper-strip" *ngIf="hasProductoHelper(seccion)">
+            <label class="field-card field-card--full helper-card">
+              <span class="form-label">Usar producto registrado</span>
+              <select (change)="applyProductoToDetalle(seccion.nombre, index, ($any($event.target)).value)">
+                <option value="">Selecciona un producto registrado</option>
+                <option *ngFor="let producto of productosCatalogo()" [value]="producto.id">
+                  {{ producto.codigo }} - {{ producto.nombre }}
+                </option>
+              </select>
+              <small>Completa codigo, descripcion, precio unitario y el codigo de porcentaje IVA del item.</small>
+            </label>
+          </div>
+
+          <div class="helper-strip" *ngIf="hasDestinatarioHelper(seccion)">
+            <label class="field-card field-card--full helper-card">
+              <span class="form-label">Usar destinatario registrado</span>
+              <select (change)="applyClienteToDestinatario(seccion.nombre, index, ($any($event.target)).value)">
+                <option value="">Selecciona un cliente o beneficiario registrado</option>
+                <option *ngFor="let cliente of clientesCatalogo()" [value]="cliente.id">
+                  {{ cliente.identificacion }} - {{ cliente.razonSocial }}
+                </option>
+              </select>
+              <small>Completa identificacion, razon social y direccion del destinatario del traslado.</small>
+            </label>
           </div>
 
           <div class="field-grid">

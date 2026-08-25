@@ -48,6 +48,18 @@ public class Empresa extends AuditableEntity {
     @Column(name = "correo_respuesta", length = 320)
     private String correoRespuesta;
 
+    @Column(name = "correo_nombre_remitente", length = 255)
+    private String correoNombreRemitente;
+
+    @Column(name = "correo_enviar_xml", nullable = false)
+    private boolean correoEnviarXml = true;
+
+    @Column(name = "correo_enviar_ride", nullable = false)
+    private boolean correoEnviarRide = true;
+
+    @Column(name = "correo_plantilla_asunto", length = 255)
+    private String correoPlantillaAsunto;
+
     @Column(name = "certificado_nombre", length = 255)
     private String certificadoNombre;
 
@@ -56,6 +68,18 @@ public class Empresa extends AuditableEntity {
 
     @Column(name = "certificado_clave", length = 500)
     private String certificadoClave;
+
+    @Column(name = "certificado_activo", nullable = false)
+    private boolean certificadoActivo = true;
+
+    @Column(name = "sri_timeout_conexion_ms", nullable = false)
+    private int sriTimeoutConexionMs = 10000;
+
+    @Column(name = "sri_timeout_respuesta_ms", nullable = false)
+    private int sriTimeoutRespuestaMs = 30000;
+
+    @Column(name = "sri_max_reintentos", nullable = false)
+    private int sriMaxReintentos = 5;
 
     @Column(nullable = false)
     private boolean activo = true;
@@ -144,6 +168,38 @@ public class Empresa extends AuditableEntity {
         this.correoRespuesta = correoRespuesta;
     }
 
+    public String getCorreoNombreRemitente() {
+        return correoNombreRemitente;
+    }
+
+    public void setCorreoNombreRemitente(String correoNombreRemitente) {
+        this.correoNombreRemitente = correoNombreRemitente;
+    }
+
+    public boolean isCorreoEnviarXml() {
+        return correoEnviarXml;
+    }
+
+    public void setCorreoEnviarXml(boolean correoEnviarXml) {
+        this.correoEnviarXml = correoEnviarXml;
+    }
+
+    public boolean isCorreoEnviarRide() {
+        return correoEnviarRide;
+    }
+
+    public void setCorreoEnviarRide(boolean correoEnviarRide) {
+        this.correoEnviarRide = correoEnviarRide;
+    }
+
+    public String getCorreoPlantillaAsunto() {
+        return correoPlantillaAsunto;
+    }
+
+    public void setCorreoPlantillaAsunto(String correoPlantillaAsunto) {
+        this.correoPlantillaAsunto = correoPlantillaAsunto;
+    }
+
     public String getCertificadoNombre() {
         return certificadoNombre;
     }
@@ -166,6 +222,38 @@ public class Empresa extends AuditableEntity {
 
     public void setCertificadoClave(String certificadoClave) {
         this.certificadoClave = certificadoClave;
+    }
+
+    public boolean isCertificadoActivo() {
+        return certificadoActivo;
+    }
+
+    public void setCertificadoActivo(boolean certificadoActivo) {
+        this.certificadoActivo = certificadoActivo;
+    }
+
+    public int getSriTimeoutConexionMs() {
+        return sriTimeoutConexionMs;
+    }
+
+    public void setSriTimeoutConexionMs(int sriTimeoutConexionMs) {
+        this.sriTimeoutConexionMs = sriTimeoutConexionMs;
+    }
+
+    public int getSriTimeoutRespuestaMs() {
+        return sriTimeoutRespuestaMs;
+    }
+
+    public void setSriTimeoutRespuestaMs(int sriTimeoutRespuestaMs) {
+        this.sriTimeoutRespuestaMs = sriTimeoutRespuestaMs;
+    }
+
+    public int getSriMaxReintentos() {
+        return sriMaxReintentos;
+    }
+
+    public void setSriMaxReintentos(int sriMaxReintentos) {
+        this.sriMaxReintentos = sriMaxReintentos;
     }
 
     public boolean isActivo() {

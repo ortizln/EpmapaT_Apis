@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public interface UsuarioSistemaRepository extends JpaRepository<UsuarioSistema, Long> {
     Optional<UsuarioSistema> findByUsernameIgnoreCase(String username);
+    Optional<UsuarioSistema> findByCorreoIgnoreCase(String correo);
     Optional<UsuarioSistema> findByUuid(UUID uuid);
     Page<UsuarioSistema> findAllByOrderByNombreAsc(Pageable pageable);
 }

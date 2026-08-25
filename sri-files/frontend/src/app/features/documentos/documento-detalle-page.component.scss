@@ -235,11 +235,98 @@
   font-size: 0.76rem;
 }
 
+.xml-search {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: end;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.xml-search__field {
+  display: grid;
+  gap: 0.45rem;
+  flex: 1 1 auto;
+}
+
+.xml-search__field span {
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.xml-search__field input {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.xml-search__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+}
+
+.xml-search-results {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.xml-search-result {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+}
+
+.xml-search-result strong {
+  display: block;
+  color: var(--color-text);
+  margin-bottom: 0.35rem;
+}
+
+.xml-search-result p {
+  margin: 0;
+  color: var(--color-text-soft);
+  font-family: monospace;
+  font-size: 0.78rem;
+  word-break: break-word;
+}
+
 .timeline-preview,
 .diagnostic-grid {
   display: grid;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+.table-shell {
+  overflow: auto;
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.table-shell table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.table-shell th,
+.table-shell td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(226, 233, 241, 0.9);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table-shell tbody tr:hover {
+  background: rgba(33, 107, 212, 0.04);
 }
 
 .timeline-preview__item,.diagnostic-card {
@@ -374,6 +461,7 @@
   .state-card__header,
   .action-card__header,
   .xml-card__meta,
+  .xml-search,
   .files-header {
     flex-direction: column;
   }
@@ -409,5 +497,11 @@
   .xml-modal pre {
     padding: var(--space-3);
     font-size: 0.74rem;
+  }
+
+  .xml-search,
+  .xml-search-results {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
   }
 }

@@ -2,7 +2,9 @@ package com.erp.sri_files.service;
 
 import com.erp.sri_files.domain.auth.UsuarioSistema;
 import com.erp.sri_files.domain.auth.UsuarioAuditoria;
+import com.erp.sri_files.domain.auth.Rol;
 import com.erp.sri_files.dto.request.UsuarioCrearRequest;
+import com.erp.sri_files.dto.request.UsuarioActualizarRequest;
 import com.erp.sri_files.dto.request.UsuarioEstadoRequest;
 import com.erp.sri_files.dto.request.UsuarioPasswordResetRequest;
 import com.erp.sri_files.dto.response.UsuarioAutenticadoResponse;
@@ -12,6 +14,7 @@ import com.erp.sri_files.dto.response.UsuarioAuditoriaResponse;
 import com.erp.sri_files.dto.response.UsuarioSistemaListadoResponse;
 import com.erp.sri_files.dto.response.UsuarioSistemaResponse;
 import com.erp.sri_files.exceptions.DocumentoRecepcionException;
+import com.erp.sri_files.repositories.auth.RolRepository;
 import com.erp.sri_files.repositories.auth.UsuarioAuditoriaRepository;
 import com.erp.sri_files.repositories.auth.UsuarioSistemaRepository;
 import org.springframework.data.domain.Page;
@@ -29,15 +32,18 @@ public class UsuarioSistemaService {
 
     private final UsuarioSistemaRepository usuarioSistemaRepository;
     private final UsuarioAuditoriaRepository usuarioAuditoriaRepository;
+    private final RolRepository rolRepository;
     private final PasswordHashService passwordHashService;
 
     public UsuarioSistemaService(
             UsuarioSistemaRepository usuarioSistemaRepository,
             UsuarioAuditoriaRepository usuarioAuditoriaRepository,
+            RolRepository rolRepository,
             PasswordHashService passwordHashService
     ) {
         this.usuarioSistemaRepository = usuarioSistemaRepository;
         this.usuarioAuditoriaRepository = usuarioAuditoriaRepository;
+        this.rolRepository = rolRepository;
         this.passwordHashService = passwordHashService;
     }
 
@@ -56,16 +62,27 @@ public class UsuarioSistemaService {
 
     @Transactional
     public UsuarioSistemaResponse crear(UsuarioCrearRequest request, UsuarioAutenticadoResponse actor) {
-        if (usuarioSistemaRepository.findByUsernameIgnoreCase(request.username()).isPresent()) {
-            throw new DocumentoRecepcionException("Ya existe un usuario con username " + request.username());
+        String username = request.username().trim();
+        String correo = request.correo().trim().toLowerCase();
+        String rolCodigo = request.rol().trim().toUpperCase();
+
+        if (usuarioSistemaRepository.findByUsernameIgnoreCase(username).isPresent()) {
+            throw new DocumentoRecepcionException("Ya existe un usuario con username " + username);
         }
+
+        if (usuarioSistemaRepository.findByCorreoIgnoreCase(correo).isPresent()) {
+            throw new DocumentoRecepcionException("Ya existe un usuario con correo " + correo);
+        }
+
+        Rol rol = rolRepository.findByCodigoIgnoreCase(rolCodigo)
+                .orElseThrow(() -> new DocumentoRecepcionException("No existe un rol valido con codigo " + rolCodigo));
 
         UsuarioSistema usuario = new UsuarioSistema();
         usuario.setUuid(UUID.randomUUID());
-        usuario.setUsername(request.username().trim());
+        usuario.setUsername(username);
         usuario.setNombre(request.nombre().trim());
-        usuario.setCorreo(request.correo().trim().toLowerCase());
-        usuario.setRol(request.rol().trim().toUpperCase());
+        usuario.setCorreo(correo);
+        usuario.setRol(rol.getCodigo());
         usuario.setActivo(true);
 
         String salt = passwordHashService.generarSalt();
@@ -79,6 +96,46 @@ public class UsuarioSistemaService {
                 actor.nombre(),
                 "USUARIO_CREADO",
                 "Usuario creado con rol " + guardado.getRol()
+        );
+        return mapear(guardado);
+    }
+
+    @Transactional
+    public UsuarioSistemaResponse actualizar(
+            UUID uuid,
+            UsuarioActualizarRequest request,
+            UsuarioAutenticadoResponse actor
+    ) {
+        UsuarioSistema usuario = buscarPorUuid(uuid);
+        String correo = request.correo().trim().toLowerCase();
+        String rolCodigo = request.rol().trim().toUpperCase();
+
+        usuarioSistemaRepository.findByCorreoIgnoreCase(correo)
+                .filter(existente -> !existente.getUuid().equals(usuario.getUuid()))
+                .ifPresent(existente -> {
+                    throw new DocumentoRecepcionException("Ya existe un usuario con correo " + correo);
+                });
+
+        Rol rol = rolRepository.findByCodigoIgnoreCase(rolCodigo)
+                .orElseThrow(() -> new DocumentoRecepcionException("No existe un rol valido con codigo " + rolCodigo));
+
+        String nombreAnterior = usuario.getNombre();
+        String correoAnterior = usuario.getCorreo();
+        String rolAnterior = usuario.getRol();
+
+        usuario.setNombre(request.nombre().trim());
+        usuario.setCorreo(correo);
+        usuario.setRol(rol.getCodigo());
+
+        UsuarioSistema guardado = usuarioSistemaRepository.save(usuario);
+        registrarAuditoria(
+                guardado,
+                actor,
+                actor.nombre(),
+                "USUARIO_ACTUALIZADO",
+                "Usuario actualizado; nombre: " + nombreAnterior + " -> " + guardado.getNombre()
+                        + "; correo: " + correoAnterior + " -> " + guardado.getCorreo()
+                        + "; rol: " + rolAnterior + " -> " + guardado.getRol()
         );
         return mapear(guardado);
     }

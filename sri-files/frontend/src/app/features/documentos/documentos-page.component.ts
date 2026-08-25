@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, finalize, of } from 'rxjs';
 import { CompanyContextService } from '../../core/services/company-context.service';
+import { AppAlertService } from '../../core/services/app-alert.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import {
   DocumentoDetalleResponse,
@@ -27,6 +28,7 @@ import { HasPermissionDirective } from '../../shared/directives/has-permission.d
 export class DocumentosPageComponent {
   private readonly companyContext = inject(CompanyContextService);
   private readonly documentoContratoService = inject(DocumentoContratoService);
+  private readonly appAlertService = inject(AppAlertService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private debounceBusquedaTimer: ReturnType<typeof setTimeout> | null = null;
@@ -57,10 +59,12 @@ export class DocumentosPageComponent {
   protected bandejaTotalPages = 0;
   protected bandejaTotalItems = 0;
   protected bandejaLoading = false;
+  protected exportando = false;
   protected bandejaError = '';
   protected detalleDocumento: DocumentoDetalleResponse | null = null;
   protected estadoDocumento: DocumentoEstadoResponse | null = null;
   protected loadingSeguimiento = false;
+  protected procesandoXmlRapidoId: string | null = null;
   protected errorSeguimiento = '';
 
   protected readonly seguimientoForm = this.fb.group({
@@ -173,19 +177,93 @@ export class DocumentosPageComponent {
     this.router.navigate([route]);
   }
 
+  protected cargarXmlRapido(payload: { id: string; file: File }): void {
+    if (this.procesandoXmlRapidoId) {
+      return;
+    }
+
+    const motivo = window.prompt('Motivo de la carga manual del XML (opcional):', '') ?? '';
+    this.procesandoXmlRapidoId = payload.id;
+
+    this.documentoContratoService
+      .cargarXmlSinFirmar(payload.id, payload.file, motivo)
+      .pipe(
+        catchError(() => {
+          this.appAlertService.error('No se pudo procesar el XML', 'El backend no pudo firmar y enviar el XML cargado desde la bandeja.');
+          return of(null);
+        }),
+        finalize(() => {
+          this.procesandoXmlRapidoId = null;
+        })
+      )
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+
+        this.appAlertService.success('XML procesado', response.mensaje || 'El documento fue procesado desde el XML cargado.');
+        this.cargarBandeja();
+      });
+  }
+
+  protected exportarBandeja(): void {
+    if (this.exportando) {
+      return;
+    }
+
+    this.exportando = true;
+
+    this.documentoContratoService
+      .exportarDocumentos({
+        empresaUuid: this.companyContext.empresaActiva()?.id || undefined,
+        tipoDocumento: this.filtroTipoDocumento || undefined,
+        estado: this.filtroEstado || undefined,
+        busqueda: this.filtroBusqueda || undefined
+      })
+      .pipe(
+        catchError(() => {
+          this.appAlertService.error('No fue posible exportar la bandeja.', 'Intenta nuevamente en unos segundos.');
+          return of(null);
+        }),
+        finalize(() => {
+          this.exportando = false;
+        })
+      )
+      .subscribe((blob) => {
+        if (!blob) {
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        const suffix = new Date().toISOString().slice(0, 10);
+        anchor.href = url;
+        anchor.download = `documentos-${suffix}.csv`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+
+        this.appAlertService.success('Exportacion completada.', 'Se descargo el archivo CSV de la bandeja.');
+      });
+  }
+
   private cargarBandeja(): void {
     this.bandejaLoading = true;
     this.bandejaError = '';
 
-    this.documentoContratoService
-      .listarDocumentos({
-        empresaUuid: this.companyContext.empresaActiva()?.id || undefined,
-        tipoDocumento: this.filtroTipoDocumento || undefined,
-        estado: this.filtroEstado || undefined,
-        busqueda: this.filtroBusqueda || undefined,
-        page: this.bandejaPage,
-        size: this.bandejaSize
-      })
+    const busqueda = this.filtroBusqueda.trim();
+    const request$ =
+      busqueda && !this.filtroTipoDocumento && !this.filtroEstado
+        ? this.documentoContratoService.buscarDocumentos(busqueda, this.bandejaPage, this.bandejaSize)
+        : this.documentoContratoService.listarDocumentos({
+            empresaUuid: this.companyContext.empresaActiva()?.id || undefined,
+            tipoDocumento: this.filtroTipoDocumento || undefined,
+            estado: this.filtroEstado || undefined,
+            busqueda: busqueda || undefined,
+            page: this.bandejaPage,
+            size: this.bandejaSize
+          });
+
+    request$
       .pipe(
         catchError(() => {
           this.bandejaError = 'No fue posible cargar la bandeja de documentos desde el backend.';

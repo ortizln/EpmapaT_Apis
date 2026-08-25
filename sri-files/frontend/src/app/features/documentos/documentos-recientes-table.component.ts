@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { DocumentoResumen, TipoDocumento } from '../../models/documento.model';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-documentos-recientes-table',
   standalone: true,
-  imports: [CommonModule, StatusChipComponent],
+  imports: [CommonModule, StatusChipComponent, HasPermissionDirective],
   templateUrl: './documentos-recientes-table.component.html',
   styleUrl: './documentos-recientes-table.component.scss'
 })
@@ -29,6 +30,8 @@ export class DocumentosRecientesTableComponent {
   readonly pageChange = output<number>();
   readonly sizeChange = output<number>();
   readonly verDetalle = output<string>();
+  readonly exportar = output<void>();
+  readonly cargarXmlRapido = output<{ id: string; file: File }>();
 
   protected readonly sizeOptions = [10, 20, 50];
 
@@ -73,5 +76,22 @@ export class DocumentosRecientesTableComponent {
     const adjustedStart = Math.max(0, end - 2);
 
     return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
+  }
+
+  protected onExportar(): void {
+    this.exportar.emit();
+  }
+
+  protected seleccionarXmlRapido(documentoId: string, event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] ?? null;
+    if (!file) {
+      return;
+    }
+
+    this.cargarXmlRapido.emit({ id: documentoId, file });
+    if (input) {
+      input.value = '';
+    }
   }
 }

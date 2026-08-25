@@ -8,8 +8,30 @@
     <article class="metric-card metric-card--warning"><span>No autorizados</span><strong>{{ data.resumen.noAutorizados }}</strong><p>Documentos rechazados o que no completaron la autorizacion.</p></article>
     <article class="metric-card"><span>Procesando</span><strong>{{ data.resumen.procesando }}</strong><p>Casos que aun pueden evolucionar antes de requerir intervencion.</p></article>
   </section>
+  <section class="metrics metrics--secondary">
+    <article class="metric-card">
+      <span>Etapas con error</span>
+      <strong>{{ errorStagesWithData() }}</strong>
+      <p>Numero de etapas que tienen incidencias registradas en este corte.</p>
+    </article>
+    <article class="metric-card metric-card--warning" *ngIf="mostCriticalStage() as criticalStage">
+      <span>Etapa critica</span>
+      <strong>{{ formatLabel(criticalStage.etapa) }}</strong>
+      <p>{{ criticalStage.cantidad }} incidencias concentradas en la etapa de mayor impacto.</p>
+    </article>
+  </section>
   <section class="panel table-panel">
     <div class="panel__header"><div><h2>Errores por etapa</h2><p>Distribucion real devuelta por el backend actual.</p></div></div>
+    <div class="filters">
+      <label class="filter-field">
+        <span>Buscar etapa</span>
+        <input type="text" [value]="busqueda" (input)="onBusquedaChange($any($event.target).value)" placeholder="FIRMA, SRI, XML..." />
+      </label>
+      <div class="filter-actions">
+        <span *ngIf="busqueda.trim()">{{ totalItems }} coincidencias</span>
+        <button *ngIf="busqueda.trim()" type="button" class="secondary-button" (click)="clearBusqueda()">Limpiar</button>
+      </div>
+    </div>
     <div class="table-shell" *ngIf="data.erroresPorEtapa.length; else emptyErrors">
       <table>
         <thead><tr><th>Etapa</th><th>Total</th><th>Impacto</th></tr></thead>

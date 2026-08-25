@@ -1,0 +1,318 @@
+<app-page-header eyebrow="Administracion" title="Plantillas RIDE Jasper" description="Carga, valida y previsualiza archivos JRXML por empresa y tipo de documento." badge="JRXML" />
+
+<div class="context-banner" *ngIf="companyContext.empresaActiva() as empresaActiva">
+  <span>Empresa activa</span>
+  <strong>{{ empresaActiva.razonSocial }}</strong>
+  <small>{{ empresaActiva.ruc }}</small>
+</div>
+
+<p class="feedback feedback--loading" *ngIf="loadingEmpresas">Cargando empresas disponibles...</p>
+<p class="feedback feedback--error" *ngIf="errorEmpresas">{{ errorEmpresas }}</p>
+
+<section class="workspace" *ngIf="!loadingEmpresas">
+  <article class="panel selector-panel">
+    <div class="panel__header">
+      <div>
+        <h2>Empresas y plantillas</h2>
+        <p>Selecciona una empresa y gestiona las plantillas JRXML disponibles para cada comprobante.</p>
+      </div>
+      <button *appHasPermission="'CERTIFICADO_ADMINISTRAR'" type="button" class="ghost-button" (click)="nuevaPlantilla()">Nueva plantilla</button>
+    </div>
+
+    <div class="company-list" *ngIf="empresas.length">
+      <button
+        *ngFor="let empresa of empresas"
+        type="button"
+        class="company-chip"
+        [class.company-chip--active]="empresaSeleccionada?.id === empresa.id"
+        (click)="seleccionarEmpresa(empresa)"
+      >
+        {{ empresa.razonSocial }}
+      </button>
+    </div>
+
+    <p class="feedback feedback--loading" *ngIf="loadingPlantillas">Cargando plantillas...</p>
+    <p class="feedback feedback--error" *ngIf="errorPlantillas">{{ errorPlantillas }}</p>
+
+    <div class="template-list" *ngIf="!loadingPlantillas && plantillas.length">
+      <button
+        *ngFor="let plantilla of plantillas"
+        type="button"
+        class="template-card"
+        [class.template-card--active]="plantillaSeleccionada?.uuid === plantilla.uuid"
+        (click)="seleccionarPlantilla(plantilla)"
+      >
+        <strong>{{ plantilla.nombre }}</strong>
+        <span>{{ plantilla.tipoDocumento }} · v{{ plantilla.version }}</span>
+        <small>{{ plantilla.predeterminada ? 'Predeterminada' : 'Secundaria' }} · {{ plantilla.activa ? 'Activa' : 'Inactiva' }}</small>
+      </button>
+    </div>
+
+    <div class="empty-state" *ngIf="!loadingPlantillas && !plantillas.length">
+      <strong>Sin plantillas registradas</strong>
+      <p>Comienza creando una plantilla base y cargando un archivo JRXML.</p>
+    </div>
+  </article>
+
+  <article class="panel form-panel">
+    <div class="panel__header">
+      <div>
+        <h2>{{ plantillaSeleccionada ? 'Editar plantilla' : 'Registrar plantilla' }}</h2>
+        <p>Descarga una base JRXML, súbela modificada y usa un documento real para verificar el contrato disponible.</p>
+      </div>
+    </div>
+
+    <form class="template-form" [formGroup]="form" (ngSubmit)="guardar()">
+      <label>
+        <span>Tipo de documento</span>
+        <select formControlName="tipoDocumento" (change)="onTipoDocumentoChange()">
+          <option *ngFor="let tipo of tiposDocumento" [value]="tipo">{{ tipo }}</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Nombre</span>
+        <input type="text" formControlName="nombre" placeholder="Plantilla corporativa factura" />
+      </label>
+
+      <label>
+        <span>Version</span>
+        <input type="text" formControlName="version" placeholder="1.0.0" />
+      </label>
+
+      <label>
+        <span>Documento ejemplo</span>
+        <select formControlName="documentoUuid" (change)="onDocumentoSeleccionado($any($event.target).value)">
+          <option value="">Selecciona un documento autorizado</option>
+          <option *ngFor="let documento of documentosDisponibles" [value]="documento.id">
+            {{ documento.tipoDocumento }} · {{ documento.numeroComprobante || documento.id }} · {{ documento.estado }}
+          </option>
+        </select>
+      </label>
+
+      <p class="feedback feedback--loading" *ngIf="loadingDocumentos">Cargando documentos de ejemplo...</p>
+      <p class="feedback feedback--error" *ngIf="errorDocumentos">{{ errorDocumentos }}</p>
+
+      <label class="file-field">
+        <span>Archivo JRXML</span>
+        <input type="file" accept=".jrxml" (change)="onFileSelected($event)" />
+        <small>{{ selectedFileName || 'Sin archivo seleccionado' }}</small>
+      </label>
+
+      <div class="check-row">
+        <label><input type="checkbox" formControlName="predeterminada" /> Predeterminada</label>
+        <label><input type="checkbox" formControlName="activa" /> Activa</label>
+      </div>
+
+      <div class="action-row">
+        <button type="button" class="ghost-button" (click)="descargarBase()">Descargar base</button>
+        <button type="button" class="ghost-button" (click)="cargarContratoDocumento()">Ver contrato</button>
+        <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Guardando...' : 'Guardar plantilla' }}</button>
+      </div>
+
+      <div class="secondary-actions" *ngIf="plantillaSeleccionada">
+        <button type="button" class="ghost-button" (click)="verificar(plantillaSeleccionada)">Verificar JRXML</button>
+        <button type="button" class="ghost-button" (click)="preview()" [disabled]="previewing">{{ previewing ? 'Generando preview...' : 'Abrir preview PDF' }}</button>
+        <button type="button" class="ghost-button" (click)="descargarPreview()" [disabled]="previewing">Descargar preview PDF</button>
+        <button type="button" class="ghost-button" (click)="cambiarEstado(plantillaSeleccionada)">{{ plantillaSeleccionada.activa ? 'Desactivar' : 'Activar' }}</button>
+      </div>
+    </form>
+  </article>
+</section>
+
+<section class="panel resources-panel" *ngIf="empresaSeleccionada">
+  <div class="panel__header">
+    <div>
+      <h2>Recursos graficos de la empresa</h2>
+      <p>Gestiona logos y marca de agua que luego se exponen como parametros en Jasper.</p>
+    </div>
+  </div>
+
+  <form class="resource-form" [formGroup]="recursoForm" (ngSubmit)="guardarRecurso()">
+    <label>
+      <span>Tipo de recurso</span>
+      <select formControlName="tipo">
+        <option *ngFor="let tipo of tiposRecurso" [value]="tipo">{{ tipo }}</option>
+      </select>
+    </label>
+
+    <label>
+      <span>Nombre visible</span>
+      <input type="text" formControlName="nombre" placeholder="Logo institucional principal" />
+    </label>
+
+    <label class="file-field">
+      <span>Archivo grafico</span>
+      <input type="file" accept=".png,.jpg,.jpeg,.svg,.webp" (change)="onRecursoFileSelected($event)" />
+      <small>{{ recursoFileName || 'Sin archivo seleccionado' }}</small>
+    </label>
+
+    <div class="action-row">
+      <button type="submit" class="primary-button" [disabled]="savingRecurso">{{ savingRecurso ? 'Cargando...' : 'Guardar recurso' }}</button>
+    </div>
+  </form>
+
+  <p class="feedback feedback--loading" *ngIf="loadingRecursos">Cargando recursos graficos...</p>
+  <p class="feedback feedback--error" *ngIf="errorRecursos">{{ errorRecursos }}</p>
+
+  <div class="resource-list" *ngIf="!loadingRecursos && recursos.length">
+    <article class="resource-card" *ngFor="let recurso of recursos">
+      <strong>{{ recurso.nombre }}</strong>
+      <span>{{ recurso.tipo }}</span>
+      <small>{{ recurso.nombreArchivo }}</small>
+      <small>{{ recurso.activo ? 'Activo' : 'Inactivo' }}</small>
+      <button type="button" class="ghost-button" (click)="cambiarEstadoRecurso(recurso)">{{ recurso.activo ? 'Desactivar' : 'Activar' }}</button>
+    </article>
+  </div>
+
+  <div class="empty-state" *ngIf="!loadingRecursos && !recursos.length">
+    <strong>Sin recursos cargados</strong>
+    <p>Agrega logos o marca de agua para usarlos en las plantillas JRXML.</p>
+  </div>
+</section>
+
+<section class="panel contract-panel" *ngIf="contrato || loadingContrato || errorContrato">
+  <div class="panel__header">
+    <div>
+      <h2>Contrato RIDE del documento</h2>
+      <p>Parametros y campos detectados desde el XML autorizado real.</p>
+    </div>
+  </div>
+
+  <p class="feedback feedback--loading" *ngIf="loadingContrato">Analizando contrato del documento...</p>
+  <p class="feedback feedback--error" *ngIf="errorContrato">{{ errorContrato }}</p>
+
+  <div class="contract-grid" *ngIf="contrato && !loadingContrato">
+    <article class="contract-card">
+      <h3>Resumen</h3>
+      <p><strong>Documento:</strong> {{ contrato.documentoId }}</p>
+      <p><strong>Tipo:</strong> {{ contrato.tipoDocumento }}</p>
+      <p><strong>Plantilla predeterminada:</strong> {{ contrato.plantillaPredeterminadaId || 'Sin configurar' }}</p>
+      <p><strong>Detail:</strong> {{ contrato.detail.nombre }}</p>
+      <p><strong>Parametros:</strong> {{ contrato.parametros.length }}</p>
+      <p><strong>Campos detail:</strong> {{ contrato.detail.campos.length }}</p>
+      <p><strong>Recursos:</strong> {{ contrato.recursos.length }}</p>
+      <button type="button" class="ghost-button" (click)="contratoModalOpen = true">Ver detalle completo</button>
+    </article>
+
+    <article class="contract-card">
+      <div class="contract-search">
+        <label>
+          <span>Buscar en contrato</span>
+          <input
+            type="text"
+            [value]="contratoSearch()"
+            (input)="updateContratoSearch($any($event.target).value)"
+            placeholder="Parametro, campo o recurso"
+          />
+        </label>
+        <div class="contract-search__meta">
+          <span *ngIf="contratoSearch().trim()">{{ contratoResultadosCount() }} coincidencias</span>
+          <button *ngIf="contratoSearch().trim()" type="button" class="ghost-button" (click)="clearContratoSearch()">Limpiar</button>
+        </div>
+      </div>
+
+      <div class="empty-state empty-state--compact" *ngIf="contratoSearch().trim() && !contratoResultadosCount()">
+        <strong>Sin resultados</strong>
+        <p>No encontramos coincidencias dentro del contrato detectado.</p>
+      </div>
+    </article>
+
+    <article class="contract-card">
+      <h3>Parametros</h3>
+      <div class="contract-table">
+        <div class="contract-row contract-row--header"><span>Nombre</span><span>Ejemplo</span></div>
+        <div class="contract-row" *ngFor="let item of contratoParametrosFiltrados()">
+          <span>{{ item.nombre }}</span>
+          <span>{{ item.valorEjemplo || 'N/D' }}</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="contract-card">
+      <h3>Campos detail</h3>
+      <div class="contract-table">
+        <div class="contract-row contract-row--header"><span>Nombre</span><span>Ejemplo</span></div>
+        <div class="contract-row" *ngFor="let item of contratoCamposFiltrados()">
+          <span>{{ item.nombre }}</span>
+          <span>{{ item.valorEjemplo || 'N/D' }}</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="contract-card">
+      <h3>Recursos graficos</h3>
+      <div class="contract-table">
+        <div class="contract-row contract-row--header"><span>Nombre</span><span>Valor</span></div>
+        <div class="contract-row" *ngFor="let item of contratoRecursosFiltrados()">
+          <span>{{ item.nombre }}</span>
+          <span>{{ item.valorEjemplo || 'N/D' }}</span>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<app-modal [open]="contratoModalOpen" [title]="'Contrato RIDE detectado'" eyebrow="Jasper" [wide]="true" (closed)="cerrarContratoModal()">
+  <div class="contract-grid contract-grid--modal" *ngIf="contrato">
+    <article class="contract-card">
+      <h3>Resumen</h3>
+      <p><strong>Documento:</strong> {{ contrato.documentoId }}</p>
+      <p><strong>Empresa:</strong> {{ contrato.empresaId }}</p>
+      <p><strong>Tipo:</strong> {{ contrato.tipoDocumento }}</p>
+      <p><strong>Plantilla predeterminada:</strong> {{ contrato.plantillaPredeterminadaId || 'Sin configurar' }}</p>
+      <p><strong>Detail:</strong> {{ contrato.detail.nombre }}</p>
+    </article>
+
+    <article class="contract-card">
+      <div class="contract-search">
+        <label>
+          <span>Buscar en contrato</span>
+          <input
+            type="text"
+            [value]="contratoSearch()"
+            (input)="updateContratoSearch($any($event.target).value)"
+            placeholder="Parametro, campo o recurso"
+          />
+        </label>
+        <div class="contract-search__meta">
+          <span *ngIf="contratoSearch().trim()">{{ contratoResultadosCount() }} coincidencias</span>
+          <button *ngIf="contratoSearch().trim()" type="button" class="ghost-button" (click)="clearContratoSearch()">Limpiar</button>
+        </div>
+      </div>
+    </article>
+
+    <article class="contract-card">
+      <h3>Parametros</h3>
+      <div class="contract-table">
+        <div class="contract-row contract-row--header"><span>Nombre</span><span>Ejemplo</span></div>
+        <div class="contract-row" *ngFor="let item of contratoParametrosFiltrados()">
+          <span>{{ item.nombre }}</span>
+          <span>{{ item.valorEjemplo || 'N/D' }}</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="contract-card">
+      <h3>Campos detail</h3>
+      <div class="contract-table">
+        <div class="contract-row contract-row--header"><span>Nombre</span><span>Ejemplo</span></div>
+        <div class="contract-row" *ngFor="let item of contratoCamposFiltrados()">
+          <span>{{ item.nombre }}</span>
+          <span>{{ item.valorEjemplo || 'N/D' }}</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="contract-card">
+      <h3>Recursos graficos</h3>
+      <div class="contract-table">
+        <div class="contract-row contract-row--header"><span>Nombre</span><span>Valor</span></div>
+        <div class="contract-row" *ngFor="let item of contratoRecursosFiltrados()">
+          <span>{{ item.nombre }}</span>
+          <span>{{ item.valorEjemplo || 'N/D' }}</span>
+        </div>
+      </div>
+    </article>
+  </div>
+</app-modal>

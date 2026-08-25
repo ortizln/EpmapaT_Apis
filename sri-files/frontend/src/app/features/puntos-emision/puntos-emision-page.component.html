@@ -10,33 +10,40 @@
     </div>
 
     <form class="point-form" [formGroup]="form" (ngSubmit)="guardar()">
-      <label>
-        <span>Empresa</span>
-        <select formControlName="empresaId" (change)="onEmpresaChange()">
-          <option value="">Selecciona una empresa</option>
-          <option *ngFor="let empresa of empresas" [value]="empresa.id">{{ empresa.razonSocial }}</option>
-        </select>
-      </label>
+      <div class="form-grid">
+        <label>
+          <span>Empresa</span>
+          <select formControlName="empresaId" (change)="onEmpresaChange()">
+            <option value="">Selecciona una empresa</option>
+            <option *ngFor="let empresa of empresas" [value]="empresa.id">{{ empresa.razonSocial }}</option>
+          </select>
+        </label>
 
-      <label>
-        <span>Establecimiento</span>
-        <select formControlName="establecimientoId" (change)="onEstablecimientoChange()">
-          <option value="">Selecciona un establecimiento</option>
-          <option *ngFor="let establecimiento of establecimientos" [value]="establecimiento.id">
-            {{ establecimiento.codigo }} - {{ establecimiento.nombre || 'Sin nombre' }}
-          </option>
-        </select>
-      </label>
+        <label>
+          <span>Establecimiento</span>
+          <select formControlName="establecimientoId" (change)="onEstablecimientoChange()">
+            <option value="">Selecciona un establecimiento</option>
+            <option *ngFor="let establecimiento of establecimientos" [value]="establecimiento.id">
+              {{ establecimiento.codigo }} - {{ establecimiento.nombre || 'Sin nombre' }}
+            </option>
+          </select>
+        </label>
 
-      <label>
-        <span>Codigo</span>
-        <input type="text" formControlName="codigo" maxlength="3" />
-      </label>
+        <label>
+          <span>Codigo</span>
+          <input type="text" formControlName="codigo" maxlength="3" />
+        </label>
 
-      <label>
-        <span>Nombre</span>
-        <input type="text" formControlName="nombre" />
-      </label>
+        <label>
+          <span>Nombre</span>
+          <input type="text" formControlName="nombre" />
+        </label>
+      </div>
+
+      <div class="form-highlight">
+        <strong>Relacion operativa</strong>
+        <p>Cada punto de emision depende del establecimiento seleccionado y afecta directamente la secuencia documental disponible.</p>
+      </div>
 
       <p class="feedback feedback--error" *ngIf="formError">{{ formError }}</p>
 

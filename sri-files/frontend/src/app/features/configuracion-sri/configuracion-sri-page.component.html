@@ -1,0 +1,35 @@
+<app-page-header eyebrow="Administracion" title="Configuracion SRI" description="Gestiona ambiente, timeouts, reintentos y estado operativo usando el endpoint real dedicado del backend." badge="Conectado" />
+<div class="context-banner" *ngIf="companyContext.empresaActiva() as empresaActiva"><span>Empresa activa</span><strong>{{ empresaActiva.razonSocial }}</strong><small>{{ empresaActiva.ruc }}</small></div>
+<p class="feedback feedback--loading" *ngIf="loadingEmpresas">Cargando empresas disponibles...</p>
+<p class="feedback feedback--error" *ngIf="errorEmpresas">{{ errorEmpresas }}</p>
+<section class="workspace">
+  <article class="panel config-panel">
+    <div class="panel__header"><div><h2>Empresas</h2><p>Selecciona la empresa sobre la cual deseas revisar o actualizar la configuracion SRI.</p></div></div>
+    <div class="company-list">
+      <ng-container *ngFor="let empresa of empresas">
+        <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="button" class="company-chip" [class.company-chip--active]="empresaSeleccionada?.id === empresa.id" (click)="seleccionarEmpresa(empresa)">{{ empresa.razonSocial }}</button>
+      </ng-container>
+    </div>
+  </article>
+  <article class="panel config-panel">
+    <div class="panel__header"><div><h2>Parametros SRI</h2><p>Edita ambiente, tiempos de espera, reintentos y estado activo del circuito SRI.</p></div></div>
+    <p class="feedback feedback--loading" *ngIf="loadingConfiguracion">Cargando configuracion actual...</p>
+    <p class="feedback feedback--error" *ngIf="errorConfiguracion">{{ errorConfiguracion }}</p>
+    <form class="config-form" [formGroup]="form" (ngSubmit)="guardar()" *ngIf="empresaSeleccionada && !loadingConfiguracion">
+      <label><span class="form-label">Ambiente SRI</span><select formControlName="ambiente"><option [value]="1">Pruebas</option><option [value]="2">Produccion</option></select></label>
+      <label><span class="form-label">Timeout de conexion (ms)</span><input type="number" min="1000" formControlName="timeoutConexionMs" placeholder="10000" /></label>
+      <label><span class="form-label">Timeout de respuesta (ms)</span><input type="number" min="1000" formControlName="timeoutRespuestaMs" placeholder="15000" /></label>
+      <label><span class="form-label">Maximo de reintentos</span><input type="number" min="0" formControlName="maxReintentos" placeholder="3" /></label>
+      <label class="field-checkbox"><input type="checkbox" formControlName="activo" /><span>Configuracion SRI activa para la empresa seleccionada</span></label>
+      <div class="form-meta" *ngIf="configuracion">
+        <div><span>Ambiente actual</span><strong>{{ configuracion.ambiente === 2 ? 'Produccion' : 'Pruebas' }}</strong></div>
+        <div><span>Conexion</span><strong>{{ configuracion.timeoutConexionMs }} ms</strong></div>
+        <div><span>Respuesta</span><strong>{{ configuracion.timeoutRespuestaMs }} ms</strong></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="secondary-button" (click)="restaurar()" [disabled]="saving || !configuracion">Restaurar</button>
+        <button *appHasPermission="'CONFIGURACION_CORREO_ADMINISTRAR'" type="submit" [disabled]="saving || form.invalid || !empresaSeleccionada">{{ saving ? 'Guardando...' : 'Guardar configuracion' }}</button>
+      </div>
+    </form>
+  </article>
+</section>

@@ -25,8 +25,14 @@ class DocumentoAuditoriaServiceTest {
         DocumentoElectronicoRepository documentoRepository = mock(DocumentoElectronicoRepository.class);
         DocumentoEstadoHistorialRepository historialRepository = mock(DocumentoEstadoHistorialRepository.class);
         DocumentoErrorRepository errorRepository = mock(DocumentoErrorRepository.class);
+        ArchivoDocumentoService archivoDocumentoService = mock(ArchivoDocumentoService.class);
 
-        DocumentoConsultaService service = new DocumentoConsultaService(documentoRepository, historialRepository, errorRepository);
+        DocumentoConsultaService service = new DocumentoConsultaService(
+                documentoRepository,
+                historialRepository,
+                errorRepository,
+                archivoDocumentoService
+        );
 
         DocumentoElectronico documento = new DocumentoElectronico();
         documento.setUuid(UUID.randomUUID());

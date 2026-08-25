@@ -1,207 +1,216 @@
 # Estado Actual del Servicio `sri-files`
 
-Fecha de levantamiento: 2026-08-14
+Fecha de actualizacion: 2026-08-24
 
 ## 1. Resumen ejecutivo
 
-`sri-files` es un microservicio Spring Boot orientado a facturacion electronica y retenciones SRI para EPMAPA-T. Actualmente el servicio:
+`sri-files` ya no debe evaluarse solamente como el servicio legacy basado en `/api/singsend`.
 
-- Genera, firma y envia comprobantes electronicos al SRI.
-- Consulta autorizaciones SRI con polling.
-- Genera PDF de facturas y retenciones desde XML autorizado.
-- Expone endpoints HTTP para procesos manuales y consultas.
-- Ejecuta tareas programadas para envio automatico y recuperacion de XML.
-- Se integra con PostgreSQL, un backend ERP y el microservicio `emails`.
+El proyecto evoluciono hacia una plataforma administrativa y operativa con backend Spring Boot bajo `/api/v1`, autenticacion JWT, administracion de documentos electronicos, configuracion por empresa, control de usuarios/roles/permisos, auditoria y gestion de plantillas RIDE con JasperReports.
 
-El estado general es `operativo con deuda tecnica`.
+El estado general actual es:
+
+- `operativo y funcional` en los modulos principales.
+- `muy avanzado` respecto al plan de reestructuracion.
+- `parcial` en algunos contratos puntuales documentados en los `.md`.
+- `con deuda tecnica controlada` por coexistencia de componentes legacy.
 
 ## 2. Estado funcional actual
 
-### Funcionalidades implementadas
+### Backend implementado
 
-- API REST principal bajo `/api/singsend`.
-- Flujo manual de facturas:
-  - firma y envio desde XML cargado como archivo.
-  - firma y envio desde XML en texto.
-  - generacion y envio de factura electronica por `idfactura`.
-  - generacion de PDF.
-- Consulta de facturas por abonado y por cedula del cliente.
-- Flujo de retenciones:
-  - validacion.
-  - firma.
-  - consulta de autorizacion.
-  - generacion de PDF.
-  - descarga de XML/PDF.
-  - envio por correo.
-- Correo saliente delegado a `msvc-emails`.
-- Scheduler para:
-  - envio automatizado de facturas en estado `I`.
-  - recuperacion de XML/autorizacion para facturas en estado `C` y `O`.
-- Swagger/OpenAPI habilitado.
+Se encuentra implementado el backend administrativo principal bajo `/api/v1` con los siguientes modulos:
 
-### Tecnologias detectadas
+- autenticacion:
+  - `POST /api/v1/auth/login`
+  - `GET /api/v1/auth/me`
+- documentos:
+  - `POST /api/v1/documentos`
+  - `GET /api/v1/documentos`
+  - `GET /api/v1/documentos/{uuid}`
+  - `GET /api/v1/documentos/{uuid}/estado`
+  - `GET /api/v1/documentos/{uuid}/historial`
+  - `GET /api/v1/documentos/{uuid}/errores`
+  - `GET /api/v1/documentos/{uuid}/intentos-sri`
+  - `GET /api/v1/documentos/{uuid}/archivos`
+  - `GET /api/v1/documentos/{uuid}/xml`
+  - `GET /api/v1/documentos/{uuid}/xml-firmado`
+  - `GET /api/v1/documentos/{uuid}/xml-autorizado`
+  - `GET /api/v1/documentos/{uuid}/ride`
+  - `GET /api/v1/documentos/{uuid}/ride/contrato`
+  - `POST /api/v1/documentos/{uuid}/reprocesar`
+  - `POST /api/v1/documentos/{uuid}/consultar-autorizacion`
+  - `POST /api/v1/documentos/{uuid}/regenerar-ride`
+  - `POST /api/v1/documentos/{uuid}/reenviar-correo`
+- dashboard:
+  - `GET /api/v1/dashboard/resumen`
+  - `GET /api/v1/dashboard/documentos-por-tipo`
+  - `GET /api/v1/dashboard/documentos-por-estado`
+  - `GET /api/v1/dashboard/documentos-por-dia`
+  - `GET /api/v1/dashboard/errores-por-etapa`
+  - `GET /api/v1/dashboard/tiempos`
+- catalogos:
+  - tipos de documento
+  - estados de documento
+  - tipos de identificacion
+  - formas de pago
+  - impuestos
+  - codigos de retencion
+- administracion empresarial:
+  - empresas
+  - establecimientos
+  - puntos de emision
+  - secuenciales
+  - certificados
+  - configuracion SRI
+  - configuracion correo
+  - recursos graficos
+  - plantillas RIDE
+- seguridad y control:
+  - usuarios
+  - roles
+  - permisos
+  - auditoria
+  - monitoreo operativo
 
-- Java 17
-- Spring Boot 3.4.3
-- Spring Web
-- Spring Data JPA
-- PostgreSQL
-- JAX-WS / SOAP Jakarta para integracion con SRI
-- JasperReports para PDFs
-- iText / PDFBox
-- xades4j / xmlsec para firma y validacion XML
-- springdoc-openapi
-- spring-dotenv
+### Frontend implementado
 
-## 3. Validacion tecnica realizada
+El frontend Angular ya dispone de una estructura administrativa real y no solo prototipos. Entre lo ya incorporado se encuentran:
 
-### Resultado de compilacion
+- login con JWT.
+- layout administrativo con navbar, sidebar y modulos.
+- dashboard.
+- bandeja/listado de documentos.
+- detalle de documentos y operaciones principales.
+- administracion de empresas, establecimientos, puntos de emision y secuenciales.
+- certificados.
+- configuracion SRI y correo.
+- usuarios y roles.
+- auditoria y monitoreo.
+- recursos por empresa.
+- modulo de plantillas RIDE con carga de `.jrxml`, verificacion, preview y consulta de contrato de campos.
 
-- `./mvnw -q -DskipTests package`: exitoso.
-- `./mvnw test`: falla.
+## 3. Componentes clave ya resueltos
 
-### Motivo de falla en pruebas
+### 3.1 Independencia funcional del servicio
 
-El proyecto tiene clase de prueba `SriFilesApplicationTests`, pero en `pom.xml` no esta declarada la dependencia de pruebas de Spring Boot/JUnit. Por eso hoy el modulo no compila la capa de test.
+Se avanzo en la separacion para que `sri-files` funcione como aplicacion propia y no solo como dependencia operativa de otro sistema.
 
-Impacto:
+Ya existe:
 
-- El artefacto de aplicacion puede generarse.
-- No existe validacion automatizada confiable en CI con `mvn test`.
+- esquema de base de datos independiente.
+- script de base completo en `backend/database/sri-files-full-schema.sql`.
+- usuarios administrativos semilla.
+- configuracion propia de certificados, SRI y correo.
+- persistencia de archivos generados y metadata documental.
 
-## 4. Configuracion y despliegue
+### 3.2 Facturacion electronica y fecha de emision
 
-### Perfiles y configuracion
+Se ajusto el flujo de generacion para que la fecha de emision del comprobante pueda alinearse con la fecha real de emision del documento electronico y no depender automaticamente de la fecha de pago o transferencia heredada del sistema origen.
 
-Se detectaron:
+### 3.3 Auditoria
 
-- `application.yml`
-- `application-prod.yml`
-- `.env`
-- `.env.prod.example`
+Se implemento auditoria para acciones administrativas y operativas relevantes, incluyendo consultas consolidadas para documentos, usuarios, roles y empresas.
 
-Variables relevantes:
+### 3.4 JasperReports y RIDE parametrizable
 
-- `SERVER_PORT`
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `ERP_BACKEND_BASE_URL`
-- `EMAIL_MS_BASE_URL`
-- `SRI_AMBIENTE`
-- cron de schedulers SRI
+Se encuentra implementado un modulo administrativo para:
 
-### Ejecucion
+- cargar plantillas `.jrxml`;
+- validarlas;
+- previsualizarlas con documentos reales;
+- marcar plantilla predeterminada por empresa y tipo;
+- administrar recursos graficos como logos y marcas de agua.
 
-Se detectaron varios caminos de despliegue:
+Tambien existe la guia:
 
-- `Dockerfile`
-- `docker-compose.yml`
-- `build-and-deploy.sh`
-- `start-prod.sh`
-- `deploy-prod.sh`
+- [GUIA_JASPER_RIDE_SRI_FILES.md](C:/Users/Alexi/Documents/PROYECTOS_EPMAPA-T/EpmapaT_Apis/sri-files/MD/GUIA_JASPER_RIDE_SRI_FILES.md)
 
-Observaciones:
+## 4. Estado frente a la documentacion del plan
 
-- El `Dockerfile` empaqueta el jar compilado y expone puerto `9090`.
-- `docker-compose.yml` levanta el servicio `sri-app`.
-- `start-prod.sh` permite levantar el jar con perfil `prod`.
-- `deploy-prod.sh` ya apunta a un script comun `deploy-java-service.sh`.
+### Cumplido o muy avanzado
 
-## 5. Integraciones externas detectadas
+- existe la nueva API `/api/v1`.
+- existe autenticacion administrativa.
+- existe recepcion y consulta de documentos.
+- existen descargas de XML y RIDE.
+- existen operaciones manuales de reproceso.
+- existe dashboard.
+- existen catalogos.
+- existe administracion empresarial.
+- existe control de certificados.
+- existe configuracion SRI y correo.
+- existen usuarios, roles y permisos.
+- existe auditoria.
+- existen recursos y plantillas RIDE.
+- existe base de datos desacoplada y script integral.
 
-- Base de datos PostgreSQL.
-- Servicios web SOAP del SRI:
-  - recepcion de comprobantes.
-  - autorizacion de comprobantes.
-- Backend ERP por HTTP REST.
-- Microservicio `emails` para encolar correos.
+### Parcial o con diferencias respecto a los `.md`
 
-Tambien existen WSDL locales en `src/main/resources/wsdl`, lo cual ayuda a desacoplar la construccion del cliente SOAP del acceso remoto al endpoint.
+- el monitoreo en codigo usa actualmente `/api/v1/monitoreo`, mientras que algunos documentos definen `/api/v1/monitoring`.
+- algunos contratos documentados aun no estan expuestos exactamente con el mismo path o shape esperado.
+- el controlador legacy `SRI_Controller` sigue existiendo para compatibilidad y soporte de flujos heredados.
+- no todos los puntos del plan de migracion documental y operativa estan formalizados en archivos auxiliares.
 
-## 6. Riesgos y hallazgos
+### Pendiente para declarar cumplimiento total
+
+- alinear completamente el contrato publicado en `API_SRI_FILES_V1.md` con la implementacion final.
+- revisar si faltan endpoints puntuales como:
+  - `GET /api/v1/documentos/search`
+  - `GET /api/v1/documentos/export`
+  - endpoints globales de correos si se desean separados del monitoreo actual
+- unificar nomenclatura final entre `monitoring` y `monitoreo`.
+- seguir reduciendo dependencia funcional del controlador legacy.
+- validar modulo por modulo del frontend contra `ARQUITECTURA_FRONTEND_SRI_FILES.md`.
+
+## 5. Validacion tecnica reciente
+
+### Backend
+
+Validaciones recientes ejecutadas:
+
+- `./mvnw.cmd -q -DskipTests compile`: exitoso.
+- `./mvnw.cmd -q test`: exitoso.
+
+### Frontend
+
+Validacion reciente ejecutada:
+
+- `npm run build`: exitoso.
+
+Persisten advertencias menores de presupuesto de bundle y estilos, pero no bloquean la compilacion.
+
+## 6. Riesgos y deuda tecnica vigente
 
 ### Riesgo alto
 
-- No hay pruebas automatizadas operativas.
-- Existen credenciales y URLs sensibles en archivos de despliegue y ejemplos locales.
-- El controlador principal `SRI_Controller` concentra demasiada logica de negocio y es muy grande, lo que complica mantenimiento y pruebas.
+- coexistencia de backend nuevo `/api/v1` con componentes legacy bajo `/api/singsend`, lo que puede generar duplicidad funcional si no se controla el cierre gradual.
 
 ### Riesgo medio
 
-- Hay mezcla de flujos manuales, batch y correo dentro del mismo servicio.
-- El estado de factura usa codigos cortos (`I`, `P`, `A`, `O`, `C`, `N`, `M`) que requieren documentacion formal para evitar errores funcionales.
-- Hay dependencias fuertes a infraestructura interna:
-  - PostgreSQL en red privada.
-  - ERP backend en IP privada.
-  - microservicio de correo.
+- diferencias entre la documentacion funcional y los paths implementados en algunos modulos.
+- necesidad de cerrar el inventario final de endpoints y pantallas para declarar cumplimiento del 100%.
 
-### Riesgo bajo / deuda tecnica
+### Riesgo bajo
 
-- Hay recursos graficos duplicados dentro de `src/main/resources`.
-- Existe clase de ejemplo o residual (`YourDataModel.java`) que parece no responder al dominio principal.
-- El repositorio incluye carpeta `target`, lo que sugiere artefactos compilados presentes en el proyecto.
+- ajustes visuales y de consistencia UX todavia pueden requerir refinamiento en algunos modulos del frontend.
+- algunos `.md` historicos ya no representan fielmente el estado actual del codigo.
 
-## 7. Estado del repositorio
+## 7. Recomendaciones inmediatas
 
-Se detectaron cambios locales sin commit:
+1. Actualizar `API_SRI_FILES_V1.md` cuando se cierre el contrato final real.
+2. Mantener este archivo como referencia de avance real del proyecto.
+3. Completar el checklist modulo por modulo usando:
+   - arquitectura backend
+   - arquitectura frontend
+   - modelo de base de datos
+   - plan de implementacion backend
+   - plan de implementacion frontend
+4. Definir si la ruta oficial de monitoreo sera `monitoring` o `monitoreo` y estandarizar backend, frontend y documentacion.
+5. Planificar el retiro gradual de funciones legacy que ya tengan reemplazo estable en `/api/v1`.
 
-- modificacion en `.env`
-- archivos nuevos de despliegue y ejemplos en varios servicios hermanos
-- archivos nuevos locales en `sri-files` como `.env.prod.example` y `deploy-prod.sh`
+## 8. Conclusion
 
-Esto no bloquea el uso del servicio, pero indica que el entorno actual esta en movimiento y no necesariamente representa un estado completamente consolidado.
+`sri-files` ya no esta en una fase inicial de reestructuracion. El proyecto cuenta con una base operativa solida tanto en backend como en frontend administrativo, incluyendo seguridad, configuracion por empresa, control documental, auditoria y personalizacion del RIDE.
 
-## 8. Endpoints visibles detectados
-
-Todos bajo base path `/api/singsend`.
-
-Entre los endpoints identificados estan:
-
-- `/factura/xml`
-- `/factura/string`
-- `/factura`
-- `/generar-pdf`
-- `/factura_electronica`
-- `/retenciones/pdf`
-- `/retencion/download`
-- `/retencion/mail`
-- `/retenciones/download`
-- `/retenciones/pdf`
-- `/retenciones/xml`
-- `/send`
-- `/send-template`
-- `/health`
-- `/facturas-por-abonado`
-- `/facturas-por-cliente-cedula`
-
-Adicionalmente, Swagger esta configurado en:
-
-- `/swagger-ui.html`
-- `/v3/api-docs`
-
-## 9. Conclusion
-
-El servicio `sri-files` esta bastante avanzado y cubre procesos clave del flujo SRI, incluyendo envio, autorizacion, PDF y correo. A nivel de construccion, el jar se genera correctamente, por lo que el servicio es potencialmente desplegable.
-
-Sin embargo, el estado actual todavia presenta deuda tecnica importante:
-
-- pruebas rotas por dependencias faltantes.
-- acoplamiento alto en el controlador principal.
-- configuraciones sensibles mezcladas con scripts de despliegue.
-- necesidad de documentar mejor estados de negocio y flujo operativo.
-
-## 10. Recomendaciones inmediatas
-
-1. Agregar `spring-boot-starter-test` al `pom.xml` y dejar `mvn test` en verde.
-2. Documentar formalmente el significado de estados de factura: `I`, `P`, `A`, `O`, `C`, `N`, `M`.
-3. Separar logica pesada de `SRI_Controller` en servicios especializados.
-4. Mover secretos reales fuera de scripts y archivos versionados.
-5. Agregar un README operativo con:
-   - variables requeridas
-   - dependencias externas
-   - flujo manual
-   - flujo batch
-   - pasos de despliegue
-6. Evaluar excluir `target/` del seguimiento si no debe permanecer en el repositorio.
-
+Lo que falta para hablar de cumplimiento del `100%` ya no es construir la base principal, sino cerrar diferencias entre documentacion y codigo, completar endpoints puntuales faltantes y consolidar el reemplazo definitivo de los componentes legacy.

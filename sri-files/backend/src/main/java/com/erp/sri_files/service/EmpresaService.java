@@ -275,6 +275,10 @@ public class EmpresaService {
         empresaAuditoriaRepository.save(auditoria);
     }
 
+    void registrarAuditoriaConfiguracion(Empresa empresa, UsuarioAutenticadoResponse actor, String accion, String descripcion) {
+        registrarAuditoria(empresa, actor, accion, descripcion);
+    }
+
     private String construirDescripcionActualizacion(
             Empresa empresa,
             String rucAnterior,

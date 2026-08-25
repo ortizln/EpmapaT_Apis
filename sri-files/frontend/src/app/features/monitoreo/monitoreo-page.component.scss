@@ -17,6 +17,10 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
+.metrics--secondary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .metric-card,
 .panel {
   background: #ffffff;
@@ -69,6 +73,31 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.attention-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.attention-card {
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid #dbe3ef;
+  background: #f8fbff;
+}
+
+.attention-card strong {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #122033;
+}
+
+.attention-card p {
+  margin: 0.6rem 0 0;
+  color: #5f6f85;
 }
 
 .table-shell {
@@ -171,6 +200,11 @@ tbody tr:hover {
 @media (max-width: 768px) {
   .header-actions {
     justify-content: stretch;
+  }
+
+  .metrics--secondary,
+  .panel--summary {
+    grid-template-columns: 1fr;
   }
 
   .panel--summary {

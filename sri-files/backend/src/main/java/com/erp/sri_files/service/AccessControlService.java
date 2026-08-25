@@ -1,5 +1,6 @@
 package com.erp.sri_files.service;
 
+import com.erp.sri_files.dto.request.RolCrearRequest;
 import com.erp.sri_files.dto.request.RolUpdateRequest;
 import com.erp.sri_files.dto.response.PermisoResponse;
 import com.erp.sri_files.dto.response.RolAuditoriaListadoItemResponse;
@@ -53,6 +54,40 @@ public class AccessControlService {
         return rolRepository.findAllByOrderByCodigoAsc().stream()
                 .map(this::mapRol)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public RolResponse obtenerRol(String codigo) {
+        return mapRol(rolRepository.findByCodigoIgnoreCase(codigo)
+                .orElseThrow(() -> new DocumentoRecepcionException("No existe rol con codigo " + codigo)));
+    }
+
+    @Transactional
+    public RolResponse crearRol(RolCrearRequest request, UsuarioAutenticadoResponse actor) {
+        String codigo = request.codigo().trim().toUpperCase();
+        if (rolRepository.findByCodigoIgnoreCase(codigo).isPresent()) {
+            throw new DocumentoRecepcionException("Ya existe un rol con codigo " + codigo);
+        }
+
+        List<String> permisosNormalizados = request.permisos().stream()
+                .map(value -> value.trim().toUpperCase())
+                .distinct()
+                .toList();
+
+        List<Permiso> permisosSeleccionados = permisoRepository.findByCodigoIn(permisosNormalizados);
+        if (permisosSeleccionados.size() != permisosNormalizados.size()) {
+            throw new DocumentoRecepcionException("La lista de permisos contiene codigos invalidos");
+        }
+
+        Rol rol = new Rol();
+        rol.setCodigo(codigo);
+        rol.setNombre(request.nombre().trim());
+        rol.setDescripcion(request.descripcion().trim());
+        rol.setPermisos(new LinkedHashSet<>(permisosSeleccionados));
+
+        Rol guardado = rolRepository.save(rol);
+        registrarAuditoria(guardado, actor, "ROL_CREADO", "Rol " + codigo + " creado");
+        return mapRol(guardado);
     }
 
     @Transactional

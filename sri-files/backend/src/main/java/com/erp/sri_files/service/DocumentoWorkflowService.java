@@ -61,6 +61,16 @@ public class DocumentoWorkflowService {
         documento.setFechaInicioProcesamiento(LocalDateTime.now());
 
         String xmlGenerado = ejecutarEtapaXml(documento);
+        continuarDesdeXmlGenerado(documento, xmlGenerado);
+    }
+
+    public void procesarDesdeXmlGenerado(DocumentoElectronico documento, String xmlGenerado) {
+        documento.setFechaInicioProcesamiento(LocalDateTime.now());
+        ejecutarEtapaXmlManual(documento, xmlGenerado);
+        continuarDesdeXmlGenerado(documento, xmlGenerado);
+    }
+
+    private void continuarDesdeXmlGenerado(DocumentoElectronico documento, String xmlGenerado) {
         String xmlFirmado = ejecutarEtapaFirma(documento, xmlGenerado);
         RespuestaSolicitud recepcion = ejecutarEtapaRecepcion(documento, xmlFirmado);
 
@@ -125,6 +135,21 @@ public class DocumentoWorkflowService {
         }
     }
 
+    private void ejecutarEtapaXmlManual(DocumentoElectronico documento, String xmlGenerado) {
+        try {
+            var validation = documentoXmlValidationService.validate(documento.getTipoDocumento(), xmlGenerado);
+            if (!validation.valid()) {
+                throw new IllegalStateException("XML invalido: " + String.join(" | ", validation.errors()));
+            }
+            archivoDocumentoService.guardarTexto(documento, DocumentoArchivoTipo.XML_GENERADO, xmlGenerado);
+            estadoDocumentoService.cambiar(documento, DocumentoEstado.XML_GENERADO, "XML sin firmar cargado manualmente");
+        } catch (Exception ex) {
+            documentoErrorService.registrar(documento, DocumentoEtapa.XML, "DOC_XML_UPLOAD_ERROR", "Error validando XML cargado manualmente", asException(ex), false);
+            estadoDocumentoService.cambiar(documento, DocumentoEstado.ERROR_XML, "Error en XML cargado manualmente: " + ex.getMessage());
+            throw ex;
+        }
+    }
+
     private String ejecutarEtapaFirma(DocumentoElectronico documento, String xmlGenerado) {
         try {
             String xmlFirmado = firmaElectronicaService.firmar(documento, xmlGenerado);
@@ -175,6 +200,10 @@ public class DocumentoWorkflowService {
 
     public void reenviarCorreo(DocumentoElectronico documento) {
         ejecutarEtapaCorreo(documento);
+    }
+
+    public byte[] regenerarRide(DocumentoElectronico documento, String xmlAutorizado) {
+        return ejecutarEtapaRide(documento, xmlAutorizado);
     }
 
     private void ejecutarEtapaCorreo(DocumentoElectronico documento) {

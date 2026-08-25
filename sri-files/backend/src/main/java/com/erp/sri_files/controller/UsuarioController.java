@@ -1,6 +1,7 @@
 package com.erp.sri_files.controller;
 
 import com.erp.sri_files.dto.request.UsuarioCrearRequest;
+import com.erp.sri_files.dto.request.UsuarioActualizarRequest;
 import com.erp.sri_files.dto.request.UsuarioEstadoRequest;
 import com.erp.sri_files.dto.request.UsuarioPasswordResetRequest;
 import com.erp.sri_files.dto.response.UsuarioAutenticadoResponse;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,6 +70,18 @@ public class UsuarioController {
                 authorization.substring("Bearer ".length()).trim()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioSistemaService.crear(request, actor));
+    }
+
+    @PutMapping("/{uuid}")
+    public ResponseEntity<UsuarioSistemaResponse> actualizar(
+            @PathVariable UUID uuid,
+            @RequestHeader("Authorization") String authorization,
+            @Valid @RequestBody UsuarioActualizarRequest request
+    ) {
+        UsuarioAutenticadoResponse actor = authService.obtenerUsuarioDesdeToken(
+                authorization.substring("Bearer ".length()).trim()
+        );
+        return ResponseEntity.ok(usuarioSistemaService.actualizar(uuid, request, actor));
     }
 
     @PatchMapping("/{uuid}/estado")

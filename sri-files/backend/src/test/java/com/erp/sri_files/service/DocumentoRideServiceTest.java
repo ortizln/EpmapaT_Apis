@@ -2,6 +2,7 @@ package com.erp.sri_files.service;
 
 import com.erp.sri_files.domain.documento.DocumentoElectronico;
 import com.erp.sri_files.domain.documento.TipoDocumento;
+import com.erp.sri_files.repositories.documento.PlantillaRideRepository;
 import com.erp.sri_files.retenciones.service.RetencionPdfService;
 import com.erp.sri_files.ride.RideService;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,15 @@ class DocumentoRideServiceTest {
         RideService rideService = mock(RideService.class);
         RetencionPdfService retencionPdfService = mock(RetencionPdfService.class);
         BasicPdfDocumentService basicPdfDocumentService = mock(BasicPdfDocumentService.class);
-        DocumentoRideService service = new DocumentoRideService(rideService, retencionPdfService, basicPdfDocumentService);
+        PlantillaRideRepository plantillaRideRepository = mock(PlantillaRideRepository.class);
+        JasperRideTemplateRenderer jasperRideTemplateRenderer = mock(JasperRideTemplateRenderer.class);
+        DocumentoRideService service = new DocumentoRideService(
+                rideService,
+                retencionPdfService,
+                basicPdfDocumentService,
+                plantillaRideRepository,
+                jasperRideTemplateRenderer
+        );
 
         DocumentoElectronico documento = new DocumentoElectronico();
         documento.setTipoDocumento(TipoDocumento.GUIA_REMISION);
@@ -36,7 +45,15 @@ class DocumentoRideServiceTest {
         RideService rideService = mock(RideService.class);
         RetencionPdfService retencionPdfService = mock(RetencionPdfService.class);
         BasicPdfDocumentService basicPdfDocumentService = mock(BasicPdfDocumentService.class);
-        DocumentoRideService service = new DocumentoRideService(rideService, retencionPdfService, basicPdfDocumentService);
+        PlantillaRideRepository plantillaRideRepository = mock(PlantillaRideRepository.class);
+        JasperRideTemplateRenderer jasperRideTemplateRenderer = mock(JasperRideTemplateRenderer.class);
+        DocumentoRideService service = new DocumentoRideService(
+                rideService,
+                retencionPdfService,
+                basicPdfDocumentService,
+                plantillaRideRepository,
+                jasperRideTemplateRenderer
+        );
 
         DocumentoElectronico documento = new DocumentoElectronico();
         documento.setTipoDocumento(TipoDocumento.NOTA_CREDITO);
@@ -54,7 +71,15 @@ class DocumentoRideServiceTest {
         RideService rideService = mock(RideService.class);
         RetencionPdfService retencionPdfService = mock(RetencionPdfService.class);
         BasicPdfDocumentService basicPdfDocumentService = mock(BasicPdfDocumentService.class);
-        DocumentoRideService service = new DocumentoRideService(rideService, retencionPdfService, basicPdfDocumentService);
+        PlantillaRideRepository plantillaRideRepository = mock(PlantillaRideRepository.class);
+        JasperRideTemplateRenderer jasperRideTemplateRenderer = mock(JasperRideTemplateRenderer.class);
+        DocumentoRideService service = new DocumentoRideService(
+                rideService,
+                retencionPdfService,
+                basicPdfDocumentService,
+                plantillaRideRepository,
+                jasperRideTemplateRenderer
+        );
 
         DocumentoElectronico documento = new DocumentoElectronico();
         documento.setTipoDocumento(TipoDocumento.LIQUIDACION_COMPRA);
@@ -72,7 +97,15 @@ class DocumentoRideServiceTest {
         RideService rideService = mock(RideService.class);
         RetencionPdfService retencionPdfService = mock(RetencionPdfService.class);
         BasicPdfDocumentService basicPdfDocumentService = mock(BasicPdfDocumentService.class);
-        DocumentoRideService service = new DocumentoRideService(rideService, retencionPdfService, basicPdfDocumentService);
+        PlantillaRideRepository plantillaRideRepository = mock(PlantillaRideRepository.class);
+        JasperRideTemplateRenderer jasperRideTemplateRenderer = mock(JasperRideTemplateRenderer.class);
+        DocumentoRideService service = new DocumentoRideService(
+                rideService,
+                retencionPdfService,
+                basicPdfDocumentService,
+                plantillaRideRepository,
+                jasperRideTemplateRenderer
+        );
 
         DocumentoElectronico documento = new DocumentoElectronico();
         documento.setTipoDocumento(TipoDocumento.NOTA_DEBITO);

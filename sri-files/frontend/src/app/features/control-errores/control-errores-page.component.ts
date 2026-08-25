@@ -18,15 +18,36 @@ export class ControlErroresPageComponent {
   private readonly dashboardService = inject(DashboardService);
   private readonly pageSignal = signal(0);
   private readonly sizeSignal = signal(10);
+  private readonly busquedaSignal = signal('');
 
   protected snapshot: DashboardSnapshot | null = null;
   protected loading = false;
   protected error = '';
   protected readonly sizeOptions = [5, 10, 20];
-  protected readonly pagedErrores = computed(() => {
+  protected readonly filteredErrores = computed(() => {
+    const term = this.busquedaSignal().trim().toLowerCase();
     const items = this.snapshot?.erroresPorEtapa ?? [];
+    if (!term) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.etapa, String(item.cantidad)].some((value) => value.toLowerCase().includes(term))
+    );
+  });
+  protected readonly pagedErrores = computed(() => {
+    const items = this.filteredErrores();
     const start = this.pageSignal() * this.sizeSignal();
     return items.slice(start, start + this.sizeSignal());
+  });
+  protected readonly errorStagesWithData = computed(() => (this.snapshot?.erroresPorEtapa ?? []).filter((item) => item.cantidad > 0).length);
+  protected readonly mostCriticalStage = computed(() => {
+    const items = this.snapshot?.erroresPorEtapa ?? [];
+    if (!items.length) {
+      return null;
+    }
+
+    return [...items].sort((a, b) => b.cantidad - a.cantidad)[0] ?? null;
   });
 
   constructor() {
@@ -47,7 +68,7 @@ export class ControlErroresPageComponent {
   }
 
   protected get totalItems(): number {
-    return this.snapshot?.erroresPorEtapa.length ?? 0;
+    return this.filteredErrores().length;
   }
 
   protected get totalPages(): number {
@@ -78,6 +99,20 @@ export class ControlErroresPageComponent {
 
     this.sizeSignal.set(nextSize);
     this.pageSignal.set(0);
+  }
+
+  protected onBusquedaChange(value: string): void {
+    this.busquedaSignal.set(value);
+    this.pageSignal.set(0);
+  }
+
+  protected clearBusqueda(): void {
+    this.busquedaSignal.set('');
+    this.pageSignal.set(0);
+  }
+
+  protected get busqueda(): string {
+    return this.busquedaSignal();
   }
 
   protected visiblePages(): number[] {

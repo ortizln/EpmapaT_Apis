@@ -62,12 +62,38 @@
       </div>
     </section>
 
+    <section class="metrics metrics--secondary">
+      <article class="metric-card" *ngIf="topEstadoPendiente() as topEstadoPendiente">
+        <span>Estado pendiente dominante</span>
+        <strong>{{ formatEstado(topEstadoPendiente[0]) }}</strong>
+        <p>{{ topEstadoPendiente[1] }} documentos comparten el estado mas frecuente en la bandeja pendiente.</p>
+      </article>
+      <article class="metric-card metric-card--warning">
+        <span>Componentes degradados</span>
+        <strong>{{ componentesNoOk().length }}</strong>
+        <p>Servicios o procesos con estado distinto de OK, ACTIVO o UP.</p>
+      </article>
+      <article class="metric-card metric-card--danger">
+        <span>Pendientes con alerta</span>
+        <strong>{{ pendientesConAlerta().length }}</strong>
+        <p>Documentos con error operativo o con varios intentos acumulados.</p>
+      </article>
+    </section>
+
     <section class="panel panel--table">
       <div class="panel__header">
         <div>
           <h2>Componentes monitoreados</h2>
           <p>Estado de los elementos principales del circuito documental.</p>
         </div>
+      </div>
+
+      <div class="attention-list" *ngIf="componentesNoOk().length">
+        <article class="attention-card" *ngFor="let componente of componentesNoOk()">
+          <strong>{{ componente.nombre }}</strong>
+          <span [class]="getEstadoClass(componente.estado)">{{ formatEstado(componente.estado) }}</span>
+          <p>{{ componente.detalle || 'Sin detalle adicional.' }}</p>
+        </article>
       </div>
 
       <div class="table-shell" *ngIf="data.componentes.length; else emptyState">
@@ -96,6 +122,14 @@
           <h2>Procesos pendientes</h2>
           <p>Documentos en curso o esperando autorizacion que requieren seguimiento operativo.</p>
         </div>
+      </div>
+
+      <div class="attention-list" *ngIf="pendientesConAlerta().length">
+        <article class="attention-card" *ngFor="let item of pendientesConAlerta()">
+          <strong>{{ item.numeroDocumento || 'Sin numero' }} · {{ item.tipoDocumento }}</strong>
+          <span [class]="getEstadoClass(item.estado)">{{ formatEstado(item.estado) }}</span>
+          <p>{{ item.razonSocial || 'Sin receptor' }} · Intentos: {{ item.intentos }}</p>
+        </article>
       </div>
 
       <div class="table-shell" *ngIf="pendientes.length; else emptyPendingState">

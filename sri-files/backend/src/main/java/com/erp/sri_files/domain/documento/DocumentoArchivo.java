@@ -53,4 +53,88 @@ public class DocumentoArchivo {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    public Long getId() {
+        return id;
+    }
+
+    public DocumentoElectronico getDocumento() {
+        return documento;
+    }
+
+    public void setDocumento(DocumentoElectronico documento) {
+        this.documento = documento;
+    }
+
+    public DocumentoArchivoTipo getTipoArchivo() {
+        return tipoArchivo;
+    }
+
+    public void setTipoArchivo(DocumentoArchivoTipo tipoArchivo) {
+        this.tipoArchivo = tipoArchivo;
+    }
+
+    public String getNombreArchivo() {
+        return nombreArchivo;
+    }
+
+    public void setNombreArchivo(String nombreArchivo) {
+        this.nombreArchivo = nombreArchivo;
+    }
+
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    public void setMimeType(String mimeType) {
+        this.mimeType = mimeType;
+    }
+
+    public String getRuta() {
+        return ruta;
+    }
+
+    public void setRuta(String ruta) {
+        this.ruta = ruta;
+    }
+
+    public String getHashSha256() {
+        return hashSha256;
+    }
+
+    public void setHashSha256(String hashSha256) {
+        this.hashSha256 = hashSha256;
+    }
+
+    public Long getTamanio() {
+        return tamanio;
+    }
+
+    public void setTamanio(Long tamanio) {
+        this.tamanio = tamanio;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }

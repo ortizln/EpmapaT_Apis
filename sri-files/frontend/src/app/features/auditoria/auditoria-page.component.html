@@ -1,0 +1,39 @@
+<app-page-header eyebrow="Control" title="Auditoria" description="Centro de trazabilidad administrativa y documental con acceso rapido a los modulos de auditoria del sistema." badge="Observabilidad" />
+
+<div class="header-actions">
+  <button type="button" class="ghost-button" (click)="cargar()" [disabled]="loading">
+    {{ loading ? 'Actualizando...' : 'Actualizar resumen' }}
+  </button>
+</div>
+
+<p class="feedback feedback--loading" *ngIf="loading">Consultando resumen de auditoria...</p>
+<p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
+
+<section class="cards-grid" *ngIf="cards.length; else emptyState">
+  <article class="audit-card" *ngFor="let card of cards" [attr.data-area]="card.titulo.toLowerCase()">
+    <div class="audit-card__header">
+      <div>
+        <span class="audit-card__eyebrow">Modulo</span>
+        <h2>{{ card.titulo }}</h2>
+        <p>{{ card.descripcion }}</p>
+      </div>
+      <strong>{{ card.total }}</strong>
+    </div>
+
+    <div class="audit-card__meta">
+      <span>Eventos recientes: {{ card.total }}</span>
+      <span>Ultima actividad: {{ card.ultimaActividad }}</span>
+    </div>
+
+    <a *appHasPermission="card.permiso" class="audit-card__link" [routerLink]="card.ruta">
+      Abrir auditoria
+    </a>
+  </article>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">
+    <strong>Sin resumen disponible</strong>
+    <p>Cuando el backend publique actividad de auditoria, se mostrara aqui el acceso consolidado por modulo.</p>
+  </div>
+</ng-template>

@@ -1,6 +1,7 @@
 package com.erp.sri_files.service;
 
 import com.erp.sri_files.domain.documento.DocumentoElectronico;
+import com.erp.sri_files.domain.documento.DocumentoArchivoTipo;
 import com.erp.sri_files.domain.documento.DocumentoEtapa;
 import com.erp.sri_files.domain.documento.DocumentoError;
 import com.erp.sri_files.domain.documento.DocumentoEstado;
@@ -8,6 +9,7 @@ import com.erp.sri_files.domain.documento.DocumentoEstadoHistorial;
 import com.erp.sri_files.domain.documento.TipoDocumento;
 import com.erp.sri_files.dto.response.DocumentoCorreoEventoResponse;
 import com.erp.sri_files.dto.response.DocumentoCorreoSeguimientoResponse;
+import com.erp.sri_files.dto.response.DocumentoArchivoItemResponse;
 import com.erp.sri_files.dto.response.DocumentoAuditoriaEventoResponse;
 import com.erp.sri_files.dto.response.DocumentoAuditoriaResumenResponse;
 import com.erp.sri_files.dto.response.DocumentoDetalleResponse;
@@ -21,6 +23,7 @@ import com.erp.sri_files.dto.response.DocumentoListadoItemResponse;
 import com.erp.sri_files.dto.response.DocumentoListadoResponse;
 import com.erp.sri_files.dto.response.DocumentoResumenOperativoResponse;
 import com.erp.sri_files.exceptions.DocumentoRecepcionException;
+import com.erp.sri_files.repositories.documento.DocumentoArchivoRepository;
 import com.erp.sri_files.repositories.documento.DocumentoElectronicoRepository;
 import com.erp.sri_files.repositories.documento.DocumentoErrorRepository;
 import com.erp.sri_files.repositories.documento.DocumentoEstadoHistorialRepository;
@@ -32,6 +35,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -95,17 +99,23 @@ public class DocumentoConsultaService {
     );
 
     private final DocumentoElectronicoRepository documentoRepository;
+    private final DocumentoArchivoRepository documentoArchivoRepository;
     private final DocumentoEstadoHistorialRepository historialRepository;
     private final DocumentoErrorRepository documentoErrorRepository;
+    private final ArchivoDocumentoService archivoDocumentoService;
 
     public DocumentoConsultaService(
             DocumentoElectronicoRepository documentoRepository,
+            DocumentoArchivoRepository documentoArchivoRepository,
             DocumentoEstadoHistorialRepository historialRepository,
-            DocumentoErrorRepository documentoErrorRepository
+            DocumentoErrorRepository documentoErrorRepository,
+            ArchivoDocumentoService archivoDocumentoService
     ) {
         this.documentoRepository = documentoRepository;
+        this.documentoArchivoRepository = documentoArchivoRepository;
         this.historialRepository = historialRepository;
         this.documentoErrorRepository = documentoErrorRepository;
+        this.archivoDocumentoService = archivoDocumentoService;
     }
 
     @Transactional(readOnly = true)
@@ -150,14 +160,52 @@ public class DocumentoConsultaService {
                 aplicarFiltros(empresaUuid, tipoDocumento, estado, busqueda),
                 pageable
         );
+        Map<UUID, Set<DocumentoArchivoTipo>> archivosPorDocumento = cargarTiposArchivo(documentos.getContent());
 
         return new DocumentoListadoResponse(
-                documentos.getContent().stream().map(this::mapearListadoItem).toList(),
+                documentos.getContent().stream()
+                        .map(documento -> mapearListadoItem(documento, archivosPorDocumento.getOrDefault(documento.getUuid(), Set.of())))
+                        .toList(),
                 documentos.getNumber(),
                 documentos.getSize(),
                 documentos.getTotalElements(),
                 documentos.getTotalPages()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentoListadoResponse buscarRapido(String q, int page, int size) {
+        return listar(null, null, null, q, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportarCsv(String empresaUuid, String tipoDocumento, String estado, String busqueda) {
+        List<DocumentoElectronico> documentos = documentoRepository.findAll(
+                aplicarFiltros(empresaUuid, tipoDocumento, estado, busqueda),
+                Sort.by(Sort.Direction.DESC, "fechaRecepcion")
+        );
+        Map<UUID, Set<DocumentoArchivoTipo>> archivosPorDocumento = cargarTiposArchivo(documentos);
+        List<DocumentoListadoItemResponse> items = documentos.stream()
+                .map(documento -> mapearListadoItem(documento, archivosPorDocumento.getOrDefault(documento.getUuid(), Set.of())))
+                .toList();
+
+        StringBuilder csv = new StringBuilder();
+        csv.append("id,tipoDocumento,numeroDocumento,razonSocial,fechaEmision,estado,xmlGenerado,xmlFirmado,xmlAutorizado,ride\n");
+
+        for (DocumentoListadoItemResponse item : items) {
+            csv.append(escapeCsv(item.id())).append(',')
+                    .append(escapeCsv(item.tipoDocumento())).append(',')
+                    .append(escapeCsv(item.numeroDocumento())).append(',')
+                    .append(escapeCsv(item.razonSocial())).append(',')
+                    .append(escapeCsv(item.fechaEmision())).append(',')
+                    .append(escapeCsv(item.estado())).append(',')
+                    .append(item.tieneXmlGenerado()).append(',')
+                    .append(item.tieneXmlFirmado()).append(',')
+                    .append(item.tieneXmlAutorizado()).append(',')
+                    .append(item.tieneRide()).append('\n');
+        }
+
+        return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     @Transactional(readOnly = true)
@@ -281,6 +329,12 @@ public class DocumentoConsultaService {
         return new DocumentoAuditoriaResumenResponse(eventos.size(), eventos);
     }
 
+    @Transactional(readOnly = true)
+    public List<DocumentoArchivoItemResponse> listarArchivos(UUID uuid) {
+        buscar(uuid);
+        return archivoDocumentoService.listar(uuid);
+    }
+
     private Specification<DocumentoElectronico> aplicarFiltros(String empresaUuid, String tipoDocumento, String estado, String busqueda) {
         Specification<DocumentoElectronico> spec = Specification.where(null);
 
@@ -312,15 +366,37 @@ public class DocumentoConsultaService {
         return spec;
     }
 
-    private DocumentoListadoItemResponse mapearListadoItem(DocumentoElectronico documento) {
+    private DocumentoListadoItemResponse mapearListadoItem(DocumentoElectronico documento, Set<DocumentoArchivoTipo> tiposArchivo) {
         return new DocumentoListadoItemResponse(
                 documento.getUuid().toString(),
                 documento.getTipoDocumento().name(),
                 documento.getNumeroDocumento(),
                 documento.getRazonSocialReceptor(),
                 documento.getFechaEmision() != null ? documento.getFechaEmision().toString() : null,
-                documento.getEstadoActual().name()
+                documento.getEstadoActual().name(),
+                tiposArchivo.contains(DocumentoArchivoTipo.XML_GENERADO),
+                tiposArchivo.contains(DocumentoArchivoTipo.XML_FIRMADO),
+                tiposArchivo.contains(DocumentoArchivoTipo.XML_AUTORIZADO),
+                tiposArchivo.contains(DocumentoArchivoTipo.RIDE_PDF)
         );
+    }
+
+    private Map<UUID, Set<DocumentoArchivoTipo>> cargarTiposArchivo(List<DocumentoElectronico> documentos) {
+        List<UUID> documentoUuids = documentos.stream()
+                .map(DocumentoElectronico::getUuid)
+                .filter(uuid -> uuid != null)
+                .toList();
+
+        if (documentoUuids.isEmpty()) {
+            return Map.of();
+        }
+
+        return documentoArchivoRepository.findByDocumento_UuidInAndActivoTrue(documentoUuids).stream()
+                .filter(archivo -> archivo.getDocumento() != null && archivo.getDocumento().getUuid() != null)
+                .collect(Collectors.groupingBy(
+                        archivo -> archivo.getDocumento().getUuid(),
+                        Collectors.mapping(archivo -> archivo.getTipoArchivo(), Collectors.toSet())
+                ));
     }
 
     private DocumentoHistorialItemResponse mapearHistorialItem(DocumentoEstadoHistorial historial) {
@@ -482,5 +558,17 @@ public class DocumentoConsultaService {
     private DocumentoElectronico buscar(UUID uuid) {
         return documentoRepository.findByUuid(uuid)
                 .orElseThrow(() -> new DocumentoRecepcionException("No existe documento con uuid " + uuid));
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String escaped = value.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") || escaped.contains("\r")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
     }
 }

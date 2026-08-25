@@ -3,8 +3,10 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, of, switchMap } from 'rxjs';
 import {
+  DocumentoArchivoItemResponse,
   DocumentoAutorizacionConsultaResponse,
   DocumentoAutorizacionManualResponse,
+  DocumentoAuditoriaEventoResponse,
   DocumentoCorreoReenvioResponse,
   DocumentoCorreoSeguimientoResponse,
   DocumentoDetalleResponse,
@@ -14,13 +16,15 @@ import {
   DocumentoHistorialItemResponse,
   DocumentoIntentoSriResponse
 } from '../../models/documento.model';
+import { AppAlertService } from '../../core/services/app-alert.service';
 import { DocumentoContratoService } from '../../core/services/documento-contrato.service';
+import { DocumentoAuditoriaService } from '../../core/services/documento-auditoria.service';
 import { AppModalComponent } from '../../shared/components/app-modal/app-modal.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
-type DocumentoDetalleTab = 'resumen' | 'estado' | 'archivos' | 'historial' | 'intentosSri' | 'errores' | 'correo';
+type DocumentoDetalleTab = 'resumen' | 'jsonXml' | 'archivos' | 'sri' | 'historial' | 'errores' | 'correos' | 'auditoria';
 
 @Component({
   selector: 'app-documento-detalle-page',
@@ -32,15 +36,18 @@ type DocumentoDetalleTab = 'resumen' | 'estado' | 'archivos' | 'historial' | 'in
 export class DocumentoDetallePageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly documentoService = inject(DocumentoContratoService);
+  private readonly documentoAuditoriaService = inject(DocumentoAuditoriaService);
+  private readonly alerts = inject(AppAlertService);
 
   protected readonly tabs: Array<{ id: DocumentoDetalleTab; label: string }> = [
     { id: 'resumen', label: 'Resumen' },
-    { id: 'estado', label: 'Estado' },
+    { id: 'jsonXml', label: 'JSON / XML' },
     { id: 'archivos', label: 'Archivos' },
+    { id: 'sri', label: 'SRI' },
     { id: 'historial', label: 'Historial' },
-    { id: 'intentosSri', label: 'Intentos SRI' },
     { id: 'errores', label: 'Errores' },
-    { id: 'correo', label: 'Correo' }
+    { id: 'correos', label: 'Correos' },
+    { id: 'auditoria', label: 'Auditoria' }
   ];
 
   protected readonly activeTab = signal<DocumentoDetalleTab>('resumen');
@@ -49,21 +56,31 @@ export class DocumentoDetallePageComponent {
   protected readonly autorizacion = signal<DocumentoAutorizacionManualResponse | null>(null);
   protected readonly autorizacionClave = signal<DocumentoAutorizacionConsultaResponse | null>(null);
   protected readonly historialItems = signal<DocumentoHistorialItemResponse[]>([]);
+  protected readonly archivosItems = signal<DocumentoArchivoItemResponse[]>([]);
+  protected readonly auditoriaItems = signal<DocumentoAuditoriaEventoResponse[]>([]);
   protected readonly intentosSri = signal<DocumentoIntentoSriResponse | null>(null);
   protected readonly seguimientoCorreo = signal<DocumentoCorreoSeguimientoResponse | null>(null);
   protected readonly erroresItems = signal<DocumentoErrorItemResponse[]>([]);
   protected readonly xmlAutorizado = signal<string | null>(null);
   protected readonly xmlModalOpen = signal(false);
+  protected readonly xmlSearch = signal('');
   protected readonly loading = signal(true);
   protected readonly error = signal('');
   protected readonly consultandoAutorizacion = signal(false);
+  protected readonly reprocesando = signal(false);
+  protected readonly cargandoXmlManual = signal(false);
+  protected readonly regenerandoRide = signal(false);
   protected readonly autorizacionError = signal('');
   protected readonly consultandoPorClave = signal(false);
   protected readonly autorizacionClaveError = signal('');
   protected readonly consultandoXml = signal(false);
   protected readonly xmlError = signal('');
   protected readonly loadingHistorial = signal(false);
+  protected readonly loadingArchivos = signal(false);
+  protected readonly loadingAuditoria = signal(false);
   protected readonly historialError = signal('');
+  protected readonly archivosError = signal('');
+  protected readonly auditoriaError = signal('');
   protected readonly loadingIntentosSri = signal(false);
   protected readonly intentosSriError = signal('');
   protected readonly loadingCorreo = signal(false);
@@ -72,8 +89,28 @@ export class DocumentoDetallePageComponent {
   protected readonly correoSuccess = signal('');
   protected readonly loadingErrores = signal(false);
   protected readonly erroresError = signal('');
+  protected readonly xmlSinFirmarNombre = signal('');
 
   protected readonly estadoActual = computed(() => this.estado()?.estado || this.documento()?.estado || 'SIN ESTADO');
+  protected readonly puedeReprocesar = computed(() => {
+    const estado = this.estadoActual().toUpperCase();
+    return [
+      'ERROR_VALIDACION',
+      'ERROR_XML',
+      'ERROR_FIRMA',
+      'DEVUELTO_SRI',
+      'NO_AUTORIZADO',
+      'ERROR_ENVIO_SRI',
+      'ERROR_AUTORIZACION',
+      'ERROR_RIDE',
+      'ERROR_CORREO',
+      'REQUIERE_INTERVENCION'
+    ].includes(estado);
+  });
+  protected readonly puedeRegenerarRide = computed(() => {
+    const estado = this.estadoActual().toUpperCase();
+    return ['AUTORIZADO', 'RIDE_GENERADO', 'CORREO_PENDIENTE', 'CORREO_ENVIADO', 'FINALIZADO', 'ERROR_RIDE'].includes(estado);
+  });
   protected readonly headerDescription = computed(() => {
     const documento = this.documento();
     if (!documento) {
@@ -116,6 +153,21 @@ export class DocumentoDetallePageComponent {
     ];
   });
   protected readonly xmlFormateado = computed(() => this.prettyPrintXml(this.xmlAutorizado()));
+  protected readonly xmlSearchResults = computed(() => {
+    const term = this.xmlSearch().trim().toLowerCase();
+    const xml = this.xmlFormateado();
+
+    if (!term || !xml) {
+      return [];
+    }
+
+    return xml
+      .split('\n')
+      .map((linea, index) => ({ lineNumber: index + 1, content: linea }))
+      .filter((item) => item.content.toLowerCase().includes(term))
+      .slice(0, 50);
+  });
+  protected readonly xmlSearchMatchCount = computed(() => this.xmlSearchResults().length);
   protected readonly xmlLineCount = computed(() => {
     const xml = this.xmlFormateado();
     return xml ? xml.split('\n').length : 0;
@@ -154,12 +206,18 @@ export class DocumentoDetallePageComponent {
           this.autorizacionClave.set(null);
           this.autorizacionClaveError.set('');
           this.historialItems.set([]);
+          this.archivosItems.set([]);
+          this.auditoriaItems.set([]);
           this.intentosSri.set(null);
           this.seguimientoCorreo.set(null);
           this.erroresItems.set([]);
           this.xmlAutorizado.set(null);
+          this.xmlSearch.set('');
+          this.xmlSinFirmarNombre.set('');
           this.xmlError.set('');
           this.historialError.set('');
+          this.archivosError.set('');
+          this.auditoriaError.set('');
           this.intentosSriError.set('');
           this.correoError.set('');
           this.correoSuccess.set('');
@@ -184,6 +242,8 @@ export class DocumentoDetallePageComponent {
         this.documento.set(response.detalle);
         this.estado.set(response.estado);
         this.cargarHistorial(response.detalle.id);
+        this.cargarArchivos(response.detalle.id);
+        this.cargarAuditoria(response.detalle.id);
         this.cargarIntentosSri(response.detalle.id);
         this.cargarSeguimientoCorreo(response.detalle.id);
         this.cargarErrores(response.detalle.id);
@@ -298,6 +358,14 @@ export class DocumentoDetallePageComponent {
       });
   }
 
+  protected updateXmlSearch(value: string): void {
+    this.xmlSearch.set(value);
+  }
+
+  protected clearXmlSearch(): void {
+    this.xmlSearch.set('');
+  }
+
   protected descargarXmlAutorizado(): void {
     const xml = this.xmlAutorizado();
     const claveAcceso = this.documento()?.claveAcceso || 'documento-autorizado';
@@ -326,6 +394,38 @@ export class DocumentoDetallePageComponent {
     }
 
     return 'Sin consulta ejecutada';
+  }
+
+  protected descargarArchivo(tipo: string): void {
+    const documento = this.documento();
+    if (!documento?.id) {
+      return;
+    }
+
+    const request$ =
+      tipo === 'XML_GENERADO'
+        ? this.documentoService.descargarXml(documento.id)
+        : tipo === 'XML_FIRMADO'
+          ? this.documentoService.descargarXmlFirmado(documento.id)
+          : tipo === 'XML_AUTORIZADO'
+            ? this.documentoService.descargarXmlAutorizado(documento.id)
+            : this.documentoService.descargarRide(documento.id);
+
+    request$.pipe(catchError(() => of(null))).subscribe((blob) => {
+      if (!blob) {
+        return;
+      }
+
+      const archivo = this.archivosItems().find((item) => item.tipo === tipo);
+      const extension = tipo === 'RIDE_PDF' ? 'pdf' : 'xml';
+      const nombre = archivo?.nombre || `${documento.claveAcceso || documento.id}.${extension}`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = nombre;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    });
   }
 
   protected reenviarCorreoDocumento(): void {
@@ -358,6 +458,106 @@ export class DocumentoDetallePageComponent {
         this.cargarSeguimientoCorreo(documento.id);
         this.cargarHistorial(documento.id);
         this.cargarErrores(documento.id);
+      });
+  }
+
+  protected reprocesarDocumento(): void {
+    const documento = this.documento();
+    if (!documento?.id || this.reprocesando()) {
+      return;
+    }
+
+    const motivo = window.prompt('Motivo de reprocesamiento (opcional):', '') ?? '';
+    this.reprocesando.set(true);
+
+    this.documentoService
+      .reprocesar(documento.id, motivo)
+      .pipe(
+        catchError(() => {
+          this.alerts.error('No se pudo reprocesar', 'El backend no pudo programar el reprocesamiento del documento.');
+          return of(null);
+        }),
+        finalize(() => {
+          this.reprocesando.set(false);
+        })
+      )
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+
+        this.alerts.success('Documento programado', response.mensaje || 'El documento fue enviado a reprocesamiento.');
+        this.refrescarDetalle(documento.id);
+      });
+  }
+
+  protected seleccionarXmlSinFirmar(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] ?? null;
+    this.xmlSinFirmarNombre.set(file?.name ?? '');
+  }
+
+  protected cargarXmlSinFirmar(input: HTMLInputElement): void {
+    const documento = this.documento();
+    const file = input.files?.[0] ?? null;
+    if (!documento?.id || !file || this.cargandoXmlManual()) {
+      return;
+    }
+
+    const motivo = window.prompt('Motivo de la carga manual del XML (opcional):', '') ?? '';
+    this.cargandoXmlManual.set(true);
+    this.xmlError.set('');
+
+    this.documentoService
+      .cargarXmlSinFirmar(documento.id, file, motivo)
+      .pipe(
+        catchError(() => {
+          this.alerts.error('No se pudo procesar el XML', 'El backend no pudo firmar y enviar el XML sin firmar cargado.');
+          return of(null);
+        }),
+        finalize(() => {
+          this.cargandoXmlManual.set(false);
+        })
+      )
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+
+        input.value = '';
+        this.xmlSinFirmarNombre.set('');
+        this.alerts.success('XML procesado', response.mensaje || 'El XML fue cargado y procesado correctamente.');
+        this.refrescarDetalle(documento.id);
+      });
+  }
+
+  protected regenerarRideDocumento(): void {
+    const documento = this.documento();
+    if (!documento?.id || this.regenerandoRide()) {
+      return;
+    }
+
+    const motivo = window.prompt('Motivo para regenerar el RIDE (opcional):', '') ?? '';
+    this.regenerandoRide.set(true);
+
+    this.documentoService
+      .regenerarRide(documento.id, motivo)
+      .pipe(
+        catchError(() => {
+          this.alerts.error('No se pudo regenerar el RIDE', 'El backend no pudo regenerar el RIDE del documento.');
+          return of(null);
+        }),
+        finalize(() => {
+          this.regenerandoRide.set(false);
+        })
+      )
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+
+        this.alerts.success('RIDE regenerado', response.mensaje || 'El RIDE fue regenerado correctamente.');
+        this.refrescarDetalle(documento.id);
       });
   }
 
@@ -408,6 +608,64 @@ export class DocumentoDetallePageComponent {
       )
       .subscribe((items) => {
         this.historialItems.set(items);
+      });
+  }
+
+  private refrescarDetalle(uuid: string): void {
+    forkJoin({
+      detalle: this.documentoService.obtenerDocumento(uuid).pipe(catchError(() => of(null))),
+      estado: this.documentoService.obtenerEstado(uuid).pipe(catchError(() => of(null)))
+    }).subscribe((response) => {
+      if (response.detalle) {
+        this.documento.set(response.detalle);
+      }
+      this.estado.set(response.estado);
+      this.cargarHistorial(uuid);
+      this.cargarArchivos(uuid);
+      this.cargarAuditoria(uuid);
+      this.cargarIntentosSri(uuid);
+      this.cargarSeguimientoCorreo(uuid);
+      this.cargarErrores(uuid);
+    });
+  }
+
+  private cargarArchivos(uuid: string): void {
+    this.loadingArchivos.set(true);
+    this.archivosError.set('');
+
+    this.documentoService
+      .listarArchivos(uuid)
+      .pipe(
+        catchError(() => {
+          this.archivosError.set('No fue posible cargar los archivos registrados del documento.');
+          return of([]);
+        }),
+        finalize(() => {
+          this.loadingArchivos.set(false);
+        })
+      )
+      .subscribe((items) => {
+        this.archivosItems.set(items);
+      });
+  }
+
+  private cargarAuditoria(uuid: string): void {
+    this.loadingAuditoria.set(true);
+    this.auditoriaError.set('');
+
+    this.documentoAuditoriaService
+      .obtenerAuditoriaReciente()
+      .pipe(
+        catchError(() => {
+          this.auditoriaError.set('No fue posible cargar la auditoria del documento.');
+          return of(null);
+        }),
+        finalize(() => {
+          this.loadingAuditoria.set(false);
+        })
+      )
+      .subscribe((response) => {
+        this.auditoriaItems.set(response?.eventos.filter((item) => item.documentoUuid === uuid) ?? []);
       });
   }
 

@@ -1,0 +1,76 @@
+<app-page-header
+  eyebrow="Administracion"
+  [title]="title"
+  [description]="description"
+  badge="Maestros"
+>
+  <button type="button" class="secondary-button" (click)="volver()">Volver a catalogos comerciales</button>
+</app-page-header>
+
+<section class="workspace">
+  <article class="panel form-panel">
+    <div class="section-heading">
+      <div>
+        <h2>{{ title }}</h2>
+        <p *ngIf="companyContext.empresaActiva() as empresaActiva">
+          Empresa activa: {{ empresaActiva.razonSocial }} - {{ empresaActiva.ruc }}
+        </p>
+      </div>
+    </div>
+
+    <form class="grid-form" *ngIf="tipo === 'clientes'" [formGroup]="clienteForm" (ngSubmit)="guardar()">
+      <label><span class="form-label">Tipo identificacion</span><input type="text" formControlName="tipoIdentificacion" /></label>
+      <label><span class="form-label">Identificacion</span><input type="text" formControlName="identificacion" /></label>
+      <label class="grid-form__full"><span class="form-label">Razon social</span><input type="text" formControlName="razonSocial" /></label>
+      <label><span class="form-label">Nombre comercial</span><input type="text" formControlName="nombreComercial" /></label>
+      <label><span class="form-label">Email</span><input type="email" formControlName="email" /></label>
+      <label><span class="form-label">Telefono</span><input type="text" formControlName="telefono" /></label>
+      <label class="grid-form__full"><span class="form-label">Direccion</span><input type="text" formControlName="direccion" /></label>
+      <label class="grid-form__full"><span class="form-label">Observacion</span><textarea rows="3" formControlName="observacion"></textarea></label>
+      <p class="feedback feedback--error grid-form__full" *ngIf="error">{{ error }}</p>
+      <div class="form-actions grid-form__full">
+        <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Guardando...' : isEditMode ? 'Actualizar cliente' : 'Crear cliente' }}</button>
+        <button type="button" class="ghost-button" (click)="volver()" [disabled]="saving">Cancelar</button>
+      </div>
+    </form>
+
+    <form class="grid-form" *ngIf="tipo === 'productos'" [formGroup]="productoForm" (ngSubmit)="guardar()">
+      <label><span class="form-label">Codigo</span><input type="text" formControlName="codigo" /></label>
+      <label class="grid-form__full"><span class="form-label">Nombre</span><input type="text" formControlName="nombre" /></label>
+      <label class="grid-form__full"><span class="form-label">Descripcion</span><textarea rows="3" formControlName="descripcion"></textarea></label>
+      <label><span class="form-label">Unidad</span><input type="text" formControlName="unidadMedida" /></label>
+      <label><span class="form-label">Precio base</span><input type="number" step="0.000001" formControlName="precioBase" /></label>
+      <label><span class="form-label">% IVA</span><input type="number" step="0.01" formControlName="porcentajeIva" /></label>
+      <p class="feedback feedback--error grid-form__full" *ngIf="error">{{ error }}</p>
+      <div class="form-actions grid-form__full">
+        <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Guardando...' : isEditMode ? 'Actualizar producto' : 'Crear producto' }}</button>
+        <button type="button" class="ghost-button" (click)="volver()" [disabled]="saving">Cancelar</button>
+      </div>
+    </form>
+
+    <form class="grid-form" *ngIf="tipo === 'formas-pago'" [formGroup]="formaPagoForm" (ngSubmit)="guardar()">
+      <label><span class="form-label">Codigo</span><input type="text" formControlName="codigo" /></label>
+      <label><span class="form-label">Nombre</span><input type="text" formControlName="nombre" /></label>
+      <label><span class="form-label">Dias plazo</span><input type="number" formControlName="diasPlazo" /></label>
+      <label class="grid-form__full"><span class="form-label">Descripcion</span><textarea rows="3" formControlName="descripcion"></textarea></label>
+      <p class="feedback feedback--error grid-form__full" *ngIf="error">{{ error }}</p>
+      <div class="form-actions grid-form__full">
+        <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Guardando...' : isEditMode ? 'Actualizar forma de pago' : 'Crear forma de pago' }}</button>
+        <button type="button" class="ghost-button" (click)="volver()" [disabled]="saving">Cancelar</button>
+      </div>
+    </form>
+
+    <form class="grid-form" *ngIf="tipo === 'iva'" [formGroup]="ivaForm" (ngSubmit)="guardar()">
+      <label><span class="form-label">Codigo interno</span><input type="text" formControlName="codigo" /></label>
+      <label><span class="form-label">Nombre</span><input type="text" formControlName="nombre" /></label>
+      <label><span class="form-label">Porcentaje</span><input type="number" step="0.01" formControlName="porcentaje" /></label>
+      <label><span class="form-label">Codigo SRI</span><input type="text" formControlName="codigoSri" /></label>
+      <label class="grid-form__full"><span class="form-label">Descripcion</span><textarea rows="3" formControlName="descripcion"></textarea></label>
+      <p class="feedback feedback--error grid-form__full" *ngIf="error">{{ error }}</p>
+      <div class="form-actions grid-form__full">
+        <button type="submit" class="primary-button" [disabled]="saving">{{ saving ? 'Guardando...' : isEditMode ? 'Actualizar tarifa IVA' : 'Crear tarifa IVA' }}</button>
+        <button type="button" class="ghost-button" (click)="volver()" [disabled]="saving">Cancelar</button>
+      </div>
+    </form>
+  </article>
+</section>

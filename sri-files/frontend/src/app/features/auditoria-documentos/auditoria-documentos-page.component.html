@@ -1,6 +1,32 @@
 <app-page-header eyebrow="Control" title="Auditoria de documentos" description="Eventos recientes del flujo documental para seguimiento operativo y trazabilidad." badge="Tiempo real" />
 
 <section class="workspace">
+  <section class="summary-grid" *ngIf="data">
+    <article class="summary-card">
+      <span>Eventos filtrados</span>
+      <strong>{{ totalItems }}</strong>
+      <p>Total de eventos visibles segun los filtros activos.</p>
+    </article>
+
+    <article class="summary-card summary-card--alert">
+      <span>Eventos con alerta</span>
+      <strong>{{ eventosConError() }}</strong>
+      <p>Transiciones con estados de error, devolucion o no autorizacion.</p>
+    </article>
+
+    <article class="summary-card" *ngIf="origenPrincipal() as origenPrincipal">
+      <span>Origen principal</span>
+      <strong>{{ formatLabel(origenPrincipal[0]) }}</strong>
+      <p>{{ origenPrincipal[1] }} eventos concentrados en el origen dominante.</p>
+    </article>
+
+    <article class="summary-card" *ngIf="ultimoEvento() as ultimoEvento">
+      <span>Ultimo evento visible</span>
+      <strong>{{ formatValue(ultimoEvento.createdAt) }}</strong>
+      <p>{{ formatLabel(ultimoEvento.estadoNuevo) }} para {{ formatValue(ultimoEvento.numeroDocumento, 'documento sin numero') }}.</p>
+    </article>
+  </section>
+
   <article class="panel panel--table">
     <div class="panel__header">
       <div>

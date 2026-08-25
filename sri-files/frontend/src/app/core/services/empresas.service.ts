@@ -5,11 +5,15 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   EmpresaAuditoriaListadoResponse,
+  CorreoConfiguracion,
+  CorreoConfiguracionRequest,
   Empresa,
   EmpresaListadoResponse,
   EmpresaConfiguracion,
   EmpresaConfiguracionRequest,
-  EmpresaRequest
+  EmpresaRequest,
+  SriConfiguracion,
+  SriConfiguracionRequest
 } from '../../models/empresa.model';
 
 @Injectable({
@@ -55,6 +59,22 @@ export class EmpresasService {
 
   actualizarConfiguracion(id: string, payload: EmpresaConfiguracionRequest): Observable<EmpresaConfiguracion> {
     return this.http.put<EmpresaConfiguracion>(`${this.apiUrl}/${id}/configuracion`, payload);
+  }
+
+  obtenerConfiguracionSri(id: string): Observable<SriConfiguracion> {
+    return this.http.get<SriConfiguracion>(`${this.apiUrl}/${id}/configuracion-sri`);
+  }
+
+  actualizarConfiguracionSri(id: string, payload: SriConfiguracionRequest): Observable<SriConfiguracion> {
+    return this.http.put<SriConfiguracion>(`${this.apiUrl}/${id}/configuracion-sri`, payload);
+  }
+
+  obtenerConfiguracionCorreo(id: string): Observable<CorreoConfiguracion> {
+    return this.http.get<CorreoConfiguracion>(`${this.apiUrl}/${id}/configuracion-correo`);
+  }
+
+  actualizarConfiguracionCorreo(id: string, payload: CorreoConfiguracionRequest): Observable<CorreoConfiguracion> {
+    return this.http.put<CorreoConfiguracion>(`${this.apiUrl}/${id}/configuracion-correo`, payload);
   }
 
   obtenerAuditoriaReciente(page = 0, size = 10): Observable<EmpresaAuditoriaListadoResponse> {

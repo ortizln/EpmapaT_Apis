@@ -13,6 +13,10 @@ export interface DocumentoResumen {
   razonSocial: string;
   fechaEmision: string;
   estado: string;
+  tieneXmlGenerado: boolean;
+  tieneXmlFirmado: boolean;
+  tieneXmlAutorizado: boolean;
+  tieneRide: boolean;
 }
 
 export interface DocumentoListadoResponse {
@@ -43,6 +47,14 @@ export interface DocumentoEstadoResponse {
   id: string;
   estado: string;
   requiereIntervencion: boolean;
+}
+
+export interface DocumentoArchivoItemResponse {
+  tipo: string;
+  nombre: string;
+  mimeType: string;
+  tamanio: number | null;
+  fechaCreacion: string | null;
 }
 
 export interface DocumentoCampoContrato {
@@ -206,6 +218,14 @@ export interface DocumentoCorreoReenvioResponse {
   id: string;
   estado: string;
   destinatario: string;
+  mensaje: string;
+}
+
+export interface DocumentoOperacionManualResponse {
+  id: string;
+  estadoAnterior: string;
+  estado: string;
+  accion: string;
   mensaje: string;
 }
 

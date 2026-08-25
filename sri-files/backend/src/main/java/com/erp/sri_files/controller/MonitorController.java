@@ -39,4 +39,5 @@ public class MonitorController {
     public ResponseEntity<CorreoPendienteResponse> obtenerCorreosPendientes() {
         return ResponseEntity.ok(monitorService.obtenerCorreosPendientes());
     }
+
 }

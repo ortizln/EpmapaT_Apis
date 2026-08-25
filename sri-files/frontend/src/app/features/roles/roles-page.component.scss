@@ -19,6 +19,13 @@
   margin-bottom: 1rem;
 }
 
+.roles-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .filter-field {
   display: grid;
   gap: 0.35rem;
@@ -130,6 +137,33 @@ tbody tr:hover {
   gap: 1rem;
 }
 
+.editor-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.editor-summary div {
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid #e7edf5;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.editor-summary span {
+  color: #5f6f85;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.editor-summary strong {
+  display: block;
+  margin-top: 0.4rem;
+  color: #17324d;
+}
+
 .role-editor__actions {
   display: flex;
   justify-content: flex-end;
@@ -168,5 +202,9 @@ input {
   .panel__header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .editor-summary {
+    grid-template-columns: 1fr;
   }
 }

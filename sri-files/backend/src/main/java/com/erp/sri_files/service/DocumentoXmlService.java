@@ -787,7 +787,8 @@ public class DocumentoXmlService {
         }
 
         if (impuestos.isEmpty()) {
-            impuestos.add(mapearImpuesto(detalle, "2", "0", base, BigDecimal.ZERO));
+            String codigoPorcentaje = textOrDefault(detalleNode.path("codigoPorcentaje"), "0");
+            impuestos.add(mapearImpuesto(detalle, "2", codigoPorcentaje, base, BigDecimal.ZERO));
         }
 
         detalle.setImpuestos(impuestos);

@@ -1,5 +1,10 @@
 <app-page-header eyebrow="Control" title="Seguimiento de correos" description="Bandeja operativa real de documentos con correo pendiente o con error de envio." badge="Backend real" />
 <div class="context-banner" *ngIf="companyContext.empresaActiva() as empresaActiva"><span>Empresa activa</span><strong>{{ empresaActiva.razonSocial }}</strong><small>{{ empresaActiva.ruc }}</small></div>
+<div class="header-actions">
+  <button type="button" class="ghost-button" (click)="recargar()" [disabled]="loading">
+    {{ loading ? 'Actualizando...' : 'Actualizar bandeja' }}
+  </button>
+</div>
 <p class="feedback feedback--loading" *ngIf="loading">Consultando bandeja de correos...</p>
 <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
 <ng-container>
@@ -12,9 +17,29 @@
         <div><span>Con error</span><strong>{{ erroresCount() }}</strong></div>
         <div><span>Requieren intervencion</span><strong>{{ intervencionCount() }}</strong></div>
       </div>
+      <div class="summary-inline" *ngIf="topEstado() as topEstado">
+        <span>Estado dominante</span>
+        <strong>{{ topEstado[0] }}</strong>
+        <small>{{ topEstado[1] }} registros dentro de la bandeja filtrada.</small>
+      </div>
     </article>
     <article class="panel summary-panel">
       <div class="panel__header"><div><h2>Bandeja de seguimiento</h2><p>Documentos autorizados con correo pendiente o incidencias en el envio.</p></div></div>
+      <div class="filters">
+        <label class="filter-field">
+          <span>Buscar en bandeja</span>
+          <input
+            type="text"
+            [value]="busqueda"
+            (input)="onBusquedaChange($any($event.target).value)"
+            placeholder="Documento, receptor, correo o estado"
+          />
+        </label>
+        <div class="filter-actions">
+          <span *ngIf="busqueda.trim()">{{ totalItems }} coincidencias</span>
+          <button *ngIf="busqueda.trim()" type="button" class="secondary-button" (click)="clearBusqueda()">Limpiar</button>
+        </div>
+      </div>
       <div class="table-shell" *ngIf="totalItems; else emptyState">
         <table>
           <thead><tr><th>Documento</th><th>Tipo</th><th>Destinatario</th><th>Estado</th><th>Autorizacion</th><th>Recepcion</th></tr></thead>

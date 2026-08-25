@@ -17,11 +17,18 @@
     </div>
 
     <form class="user-form" [formGroup]="createForm" (ngSubmit)="crearUsuario()">
-      <label><span class="form-label">Username</span><input type="text" formControlName="username" placeholder="operador.sri" /></label>
-      <label><span class="form-label">Nombre completo</span><input type="text" formControlName="nombre" placeholder="Operador SRI" /></label>
-      <label><span class="form-label">Correo</span><input type="email" formControlName="correo" placeholder="operador@empresa.ec" /></label>
+      <div class="form-grid">
+        <label><span class="form-label">Username</span><input type="text" formControlName="username" placeholder="operador.sri" /></label>
+        <label><span class="form-label">Nombre completo</span><input type="text" formControlName="nombre" placeholder="Operador SRI" /></label>
+        <label><span class="form-label">Correo</span><input type="email" formControlName="correo" placeholder="operador@empresa.ec" /></label>
+        <label><span class="form-label">Rol</span><select formControlName="rol"><option value="ADMIN">ADMIN</option><option value="OPERADOR">OPERADOR</option></select></label>
+      </div>
       <label><span class="form-label">Contrasena inicial</span><input type="password" formControlName="password" placeholder="Temporal123" /></label>
-      <label><span class="form-label">Rol</span><select formControlName="rol"><option value="ADMIN">ADMIN</option><option value="OPERADOR">OPERADOR</option></select></label>
+
+      <div class="form-highlight">
+        <strong>Recomendacion</strong>
+        <p>Usa una clave temporal segura y comparte el acceso por un canal distinto al correo principal del usuario.</p>
+      </div>
 
       <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
 
@@ -62,8 +69,15 @@
       </div>
 
       <form class="reset-form" [formGroup]="resetPasswordForm" (ngSubmit)="confirmarResetPassword()">
-        <label><span class="form-label">Nueva contrasena</span><input type="password" formControlName="password" placeholder="Nueva clave segura" /></label>
-        <label><span class="form-label">Confirmar contrasena</span><input type="password" formControlName="confirmacion" placeholder="Repite la nueva clave" /></label>
+        <div class="form-grid">
+          <label><span class="form-label">Nueva contrasena</span><input type="password" formControlName="password" placeholder="Nueva clave segura" /></label>
+          <label><span class="form-label">Confirmar contrasena</span><input type="password" formControlName="confirmacion" placeholder="Repite la nueva clave" /></label>
+        </div>
+
+        <div class="form-highlight form-highlight--muted">
+          <strong>Seguridad</strong>
+          <p>La nueva clave reemplazara inmediatamente la anterior para el usuario seleccionado.</p>
+        </div>
 
         <p class="feedback feedback--error" *ngIf="error">{{ error }}</p>
 

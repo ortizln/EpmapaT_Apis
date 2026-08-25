@@ -1,5 +1,6 @@
-<div class="breadcrumb">
-  <span>Inicio</span>
-  <span>/</span>
-  <strong>{{ currentSection$ | async }}</strong>
+<div class="breadcrumb" *ngIf="breadcrumbItems$ | async as items">
+  <span class="breadcrumb__item" *ngFor="let item of items; let last = last" [class.breadcrumb__item--active]="last">
+    <span>{{ item }}</span>
+    <span class="breadcrumb__separator" *ngIf="!last">›</span>
+  </span>
 </div>

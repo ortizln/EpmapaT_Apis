@@ -4,6 +4,21 @@ spring:
     url: ${SPRING_DATASOURCE_URL:${DB_URL:}}
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASS:}}
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${SPRING_MAIL_SMTP_STARTTLS_ENABLE:true}
+          connectiontimeout: ${SPRING_MAIL_CONNECTION_TIMEOUT:5000}
+          timeout: ${SPRING_MAIL_TIMEOUT:5000}
+          writetimeout: ${SPRING_MAIL_WRITE_TIMEOUT:5000}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -18,10 +33,6 @@ server:
 app:
   reports:
     path: ${APP_REPORTS_PATH:/home/epmapaadmin/reportsEpmapat}
-  backend:
-    base-url: ${ERP_BACKEND_BASE_URL:http://192.168.0.165:9080}
-  email-ms:
-    base-url: ${EMAIL_MS_BASE_URL:http://localhost:9099}
   mail:
     from: ${APP_MAIL_FROM:facturacion@epmapatulcan.gob.ec}
     username: ${APP_MAIL_USERNAME:facturacion}

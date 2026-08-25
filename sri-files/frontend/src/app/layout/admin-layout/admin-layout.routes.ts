@@ -184,6 +184,13 @@ export const adminLayoutRoutes: Routes = [
         data: { role: 'ADMIN' }
       },
       {
+        path: 'seguridad/usuarios',
+        loadComponent: () =>
+          import('../../features/usuarios/usuarios-page.component').then((m) => m.UsuariosPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN' }
+      },
+      {
         path: 'usuarios/nuevo',
         loadComponent: () =>
           import('../../features/usuarios/usuario-form-page.component').then((m) => m.UsuarioFormPageComponent),
@@ -219,6 +226,69 @@ export const adminLayoutRoutes: Routes = [
         data: { role: 'ADMIN', permission: 'CONFIGURACION_CORREO_ADMINISTRAR' }
       },
       {
+        path: 'administracion/configuracion-sri',
+        loadComponent: () =>
+          import('../../features/configuracion-sri/configuracion-sri-page.component').then((m) => m.ConfiguracionSriPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'CONFIGURACION_CORREO_ADMINISTRAR' }
+      },
+      {
+        path: 'administracion/empresas',
+        loadComponent: () =>
+          import('../../features/catalogos-admin/catalogos-admin-page.component').then((m) => m.CatalogosAdminPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', tab: 'empresas' }
+      },
+      {
+        path: 'administracion/establecimientos',
+        loadComponent: () =>
+          import('../../features/catalogos-admin/catalogos-admin-page.component').then((m) => m.CatalogosAdminPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', tab: 'establecimientos' }
+      },
+      {
+        path: 'administracion/puntos-emision',
+        loadComponent: () =>
+          import('../../features/catalogos-admin/catalogos-admin-page.component').then((m) => m.CatalogosAdminPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', tab: 'puntos-emision' }
+      },
+      {
+        path: 'administracion/secuenciales',
+        loadComponent: () =>
+          import('../../features/catalogos-admin/catalogos-admin-page.component').then((m) => m.CatalogosAdminPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', tab: 'secuenciales' }
+      },
+      {
+        path: 'administracion/plantillas-ride',
+        loadComponent: () =>
+          import('../../features/plantillas-ride/plantillas-ride-page.component').then((m) => m.PlantillasRidePageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'CERTIFICADO_ADMINISTRAR' }
+      },
+      {
+        path: 'administracion/catalogos-comerciales',
+        loadComponent: () =>
+          import('../../features/catalogos-comerciales/catalogos-comerciales-page.component').then((m) => m.CatalogosComercialesPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'CATALOGO_ADMINISTRAR' }
+      },
+      {
+        path: 'administracion/catalogos-comerciales/:tipo/nuevo',
+        loadComponent: () =>
+          import('../../features/catalogos-comerciales/catalogo-comercial-form-page.component').then((m) => m.CatalogoComercialFormPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'CATALOGO_ADMINISTRAR' }
+      },
+      {
+        path: 'administracion/catalogos-comerciales/:tipo/:id/editar',
+        loadComponent: () =>
+          import('../../features/catalogos-comerciales/catalogo-comercial-form-page.component').then((m) => m.CatalogoComercialFormPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN', permission: 'CATALOGO_ADMINISTRAR' }
+      },
+      {
         path: 'control/errores',
         loadComponent: () =>
           import('../../features/control-errores/control-errores-page.component').then((m) => m.ControlErroresPageComponent),
@@ -238,6 +308,13 @@ export const adminLayoutRoutes: Routes = [
           import('../../features/monitoreo/monitoreo-page.component').then((m) => m.MonitoreoPageComponent),
         canActivate: [permissionGuard],
         data: { role: 'ADMIN', permission: 'MONITOREO_VER' }
+      },
+      {
+        path: 'control/auditoria',
+        loadComponent: () =>
+          import('../../features/auditoria/auditoria-page.component').then((m) => m.AuditoriaPageComponent),
+        canActivate: [permissionGuard],
+        data: { role: 'ADMIN' }
       },
       {
         path: 'control/auditoria-documentos',
