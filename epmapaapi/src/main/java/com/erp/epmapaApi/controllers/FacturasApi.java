@@ -1,6 +1,6 @@
 package com.erp.epmapaApi.controllers;
 
-import com.erp.epmapaApi.dto.FacturaElectronicaDTO;
+import com.erp.epmapaApi.DTO.FacturaElectronicaDTO;
 import com.erp.epmapaApi.models.Clientes;
 import com.erp.epmapaApi.models.Facturas;
 import com.erp.epmapaApi.models.sri.FecFactura;

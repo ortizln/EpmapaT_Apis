@@ -1,6 +1,12 @@
 package com.erp.sri_files.services;
 
 import com.erp.sri_files.dto.AutorizacionSriResult;
+import com.erp.sri_files.sri.circuitbreaker.SriCircuitBreaker;
+import com.erp.sri_files.sri.classifier.SriResponseClassifier;
+import com.erp.sri_files.sri.model.EstadoComunicacionSri;
+import com.erp.sri_files.sri.model.ResultadoSri;
+import com.erp.sri_files.sri.model.ServicioSri;
+import com.erp.sri_files.sri.model.TipoResultadoSri;
 import ec.gob.sri.ws.autorizacion.Autorizacion;
 import ec.gob.sri.ws.autorizacion.AutorizacionComprobantesOffline;
 import ec.gob.sri.ws.autorizacion.AutorizacionComprobantesOfflineService;
@@ -24,8 +30,23 @@ import java.util.function.Function;
 @Service
 public class SendXmlToSriService {
 
+    private final SriResponseClassifier clasificador;
+    private final SriCircuitBreaker circuitBreaker;
+
     /** 1 = PRUEBAS, 2 = PRODUCCIÓN */
     private int ambiente = 2;
+
+    // === Timeouts configurables (ms) ===
+    @Value("${sri.timeout.connect-ms:15000}")
+    private int connectTimeoutMs;
+
+    @Value("${sri.timeout.read-ms:30000}")
+    private int readTimeoutMs;
+
+    public SendXmlToSriService(SriResponseClassifier clasificador, SriCircuitBreaker circuitBreaker) {
+        this.clasificador = clasificador;
+        this.circuitBreaker = circuitBreaker;
+    }
 
     // === WSDL locales (classpath) ===
     @Value("${sri.wsdl.local.recepcion:wsdl/RecepcionComprobantesOffline.wsdl}")
@@ -70,14 +91,14 @@ public class SendXmlToSriService {
     private void applyTimeouts(Object port) {
         Map<String, Object> ctx = ((BindingProvider) port).getRequestContext();
         // Metro
-        ctx.put("com.sun.xml.ws.connect.timeout", 15000);
-        ctx.put("com.sun.xml.ws.request.timeout", 30000);
+        ctx.put("com.sun.xml.ws.connect.timeout", connectTimeoutMs);
+        ctx.put("com.sun.xml.ws.request.timeout", readTimeoutMs);
         // JAX-WS interno (por compatibilidad)
-        ctx.put("com.sun.xml.internal.ws.connect.timeout", 15000);
-        ctx.put("com.sun.xml.internal.ws.request.timeout", 30000);
+        ctx.put("com.sun.xml.internal.ws.connect.timeout", connectTimeoutMs);
+        ctx.put("com.sun.xml.internal.ws.request.timeout", readTimeoutMs);
         // Estándar
-        ctx.put("javax.xml.ws.client.connectionTimeout", "15000");
-        ctx.put("javax.xml.ws.client.receiveTimeout", "30000");
+        ctx.put("javax.xml.ws.client.connectionTimeout", String.valueOf(connectTimeoutMs));
+        ctx.put("javax.xml.ws.client.receiveTimeout", String.valueOf(readTimeoutMs));
     }
 
     /** Aplica el endpoint real (celcer/cel), NO el WSDL local */
@@ -170,6 +191,102 @@ public class SendXmlToSriService {
     public RespuestaSolicitud enviarFacturaFirmadaTxt(String xmlFirmado, int ambienteSolicitud) throws Exception {
         String xml = stripBom(xmlFirmado);
         return enviarFacturaFirmada(xml.getBytes(StandardCharsets.UTF_8), ambienteSolicitud);
+    }
+
+    /**
+     * Enviar a Recepción devolviendo el resultado ya clasificado.
+     * Nunca lanza por errores de red: los convierte en un ResultadoSri reintentable.
+     */
+    public ResultadoSri enviarComprobanteConResultado(String xmlFirmado) {
+        if (!circuitBreaker.puedeProceder(ServicioSri.RECEPCION.name())) {
+            return resultadoCircuitoAbierto(ServicioSri.RECEPCION.name());
+        }
+        long inicio = System.currentTimeMillis();
+        try {
+            RespuestaSolicitud rs = enviarFacturaFirmadaTxt(xmlFirmado);
+            return notificar(circuitBreaker, clasificador.clasificarRecepcion(rs, System.currentTimeMillis() - inicio),
+                    ServicioSri.RECEPCION.name());
+        } catch (Exception ex) {
+            return notificar(circuitBreaker, clasificador.clasificarExcepcion(ex, ServicioSri.RECEPCION.name(), System.currentTimeMillis() - inicio),
+                    ServicioSri.RECEPCION.name());
+        }
+    }
+
+    public ResultadoSri enviarComprobanteConResultado(String xmlFirmado, int ambienteSolicitud) {
+        if (!circuitBreaker.puedeProceder(ServicioSri.RECEPCION.name())) {
+            return resultadoCircuitoAbierto(ServicioSri.RECEPCION.name());
+        }
+        long inicio = System.currentTimeMillis();
+        try {
+            RespuestaSolicitud rs = enviarFacturaFirmadaTxt(xmlFirmado, ambienteSolicitud);
+            return notificar(circuitBreaker, clasificador.clasificarRecepcion(rs, System.currentTimeMillis() - inicio),
+                    ServicioSri.RECEPCION.name());
+        } catch (Exception ex) {
+            return notificar(circuitBreaker, clasificador.clasificarExcepcion(ex, ServicioSri.RECEPCION.name(), System.currentTimeMillis() - inicio),
+                    ServicioSri.RECEPCION.name());
+        }
+    }
+
+    /**
+     * Consulta única de autorización devolviendo el resultado ya clasificado.
+     */
+    public ResultadoSri consultarAutorizacionConResultado(String claveAcceso) {
+        if (!circuitBreaker.puedeProceder(ServicioSri.AUTORIZACION.name())) {
+            return resultadoCircuitoAbierto(ServicioSri.AUTORIZACION.name());
+        }
+        long inicio = System.currentTimeMillis();
+        try {
+            RespuestaComprobante rc = consultarAutorizacion(claveAcceso);
+            return notificar(circuitBreaker, clasificador.clasificarAutorizacion(rc, System.currentTimeMillis() - inicio),
+                    ServicioSri.AUTORIZACION.name());
+        } catch (Exception ex) {
+            return notificar(circuitBreaker, clasificador.clasificarExcepcion(ex, ServicioSri.AUTORIZACION.name(), System.currentTimeMillis() - inicio),
+                    ServicioSri.AUTORIZACION.name());
+        }
+    }
+
+    public ResultadoSri consultarAutorizacionConResultado(String claveAcceso, int ambienteSolicitud) {
+        if (!circuitBreaker.puedeProceder(ServicioSri.AUTORIZACION.name())) {
+            return resultadoCircuitoAbierto(ServicioSri.AUTORIZACION.name());
+        }
+        long inicio = System.currentTimeMillis();
+        try {
+            RespuestaComprobante rc = consultarAutorizacion(claveAcceso, ambienteSolicitud);
+            return notificar(circuitBreaker, clasificador.clasificarAutorizacion(rc, System.currentTimeMillis() - inicio),
+                    ServicioSri.AUTORIZACION.name());
+        } catch (Exception ex) {
+            return notificar(circuitBreaker, clasificador.clasificarExcepcion(ex, ServicioSri.AUTORIZACION.name(), System.currentTimeMillis() - inicio),
+                    ServicioSri.AUTORIZACION.name());
+        }
+    }
+
+    /** Resultado transitorio cuando el circuito está abierto (no se llama al SRI). */
+    private static ResultadoSri resultadoCircuitoAbierto(String servicio) {
+        return ResultadoSri.builder()
+                .tipo(TipoResultadoSri.ERROR_TRANSITORIO)
+                .estadoComunicacion(EstadoComunicacionSri.SRI_NO_DISPONIBLE)
+                .codigo("CIRCUIT_OPEN")
+                .mensaje("Circuito SRI abierto: llamada no realizada para no saturar el servicio")
+                .servicio(servicio)
+                .duracionMs(0L)
+                .reintentable(true)
+                .requiereConsultaAutorizacion(true)
+                .build();
+    }
+
+    /** Alimenta el circuit breaker según el resultado y lo devuelve. */
+    private static ResultadoSri notificar(SriCircuitBreaker breaker, ResultadoSri res, String servicio) {
+        if (breaker == null || res == null || res.getTipo() == null) {
+            return res;
+        }
+        boolean transitorio = res.getTipo() == TipoResultadoSri.ERROR_TRANSITORIO
+                || res.getTipo() == TipoResultadoSri.SIN_RESPUESTA;
+        if (transitorio) {
+            breaker.onFallo(servicio);
+        } else {
+            breaker.onExito(servicio);
+        }
+        return res;
     }
 
     // ======================================================

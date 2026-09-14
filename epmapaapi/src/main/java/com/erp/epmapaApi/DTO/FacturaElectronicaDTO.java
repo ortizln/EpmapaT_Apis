@@ -1,4 +1,4 @@
-package com.erp.epmapaApi.dto;
+package com.erp.epmapaApi.DTO;
 
 import lombok.Builder;
 import lombok.Data;

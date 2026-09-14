@@ -46,6 +46,8 @@ sri:
       cron: ${SRI_SCHEDULER_ENVIO_FACTURAS_CRON:0 */1 * * * *}
     recuperacion-xml:
       cron: ${SRI_SCHEDULER_RECUPERACION_XML_CRON:30 */3 * * * *}
+    reintentos:
+      cron: ${SRI_SCHEDULER_REINTENTOS_CRON:45 */2 * * * *}
 
 logging:
   level:

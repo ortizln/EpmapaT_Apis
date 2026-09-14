@@ -4,22 +4,28 @@ import com.erp.sri_files.dto.AttachmentDTO;
 import com.erp.sri_files.dto.AutorizacionInfo;
 import com.erp.sri_files.dto.AutorizacionSriResult;
 import com.erp.sri_files.dto.SendMailRequest;
+import com.erp.sri_files.domain.sri.SriIntentoComunicacion;
 import com.erp.sri_files.models.Factura;
 import com.erp.sri_files.repositories.FacturaR;
+import com.erp.sri_files.sri.model.ResultadoSri;
+import com.erp.sri_files.sri.model.ServicioSri;
+import com.erp.sri_files.sri.model.TipoResultadoSri;
+import com.erp.sri_files.sri.retry.SriReintentoDecider;
+import com.erp.sri_files.sri.retry.SriReintentoDecision;
+import com.erp.sri_files.sri.retry.SriRetryPolicy;
 import com.erp.sri_files.utils.FirmaComprobantesService;
 import com.erp.sri_files.utils.SriAutorizacionAdapter;
 import ec.gob.sri.ws.autorizacion.RespuestaComprobante;
-import ec.gob.sri.ws.recepcion.RespuestaSolicitud;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +45,24 @@ public class EnvioSriBatchService {
     private final SendXmlToSriService sendXmlToSriService;
     private final XmlToPdfService xmlToPdfService;
     private final MailService mailService;
+    private final SriIntentoService sriIntentoService;
+    private final com.erp.sri_files.sri.classifier.SriResponseClassifier clasificador;
+    private final SriRetryPolicy retryPolicy;
+    private final PlatformTransactionManager transactionManager;
     // private final StorageService storageService; // opcional, para guardar XMLs
+
+    /** Identidad del worker para el claim/concurrencia. */
+    private String workerId;
+
+    @PostConstruct
+    void init() {
+        this.workerId = workerIdCfg == null || workerIdCfg.isBlank()
+                ? "sri-files-" + UUID.randomUUID()
+                : workerIdCfg;
+    }
+
+    @Value("${sri.concurrency.worker-id:}")
+    private String workerIdCfg;
 
 
 
@@ -56,38 +79,54 @@ public class EnvioSriBatchService {
     @Value("${sri.poll.delay-ms:4000}")
     private long pollDelayMs;
 
-        @Transactional
-        @Scheduled(cron = "${sri.scheduler.envio-facturas.cron}") // ej: 0 */2 * * * *
+    @Value("${sri.concurrency.lock-timeout-minutes:15}")
+    private int lockTimeoutMinutes;
+
         public void automatizacionEnvioFacturasElectonicas() {
             long started = System.currentTimeMillis();
             String threadName = Thread.currentThread().getName();
             logTaskStart("automatizacionEnvioFacturasElectonicas", threadName);
             log.info("Ejecutando envio de facturas at={}", LocalDateTime.now());
             try {
-                var limit = PageRequest.of(0, LOTE);
-                var page = facturaR.findByEstadoNormalizado("I", limit);
-                List<Factura> facturas = page.getContent();
-                int exitosas = 0;
-                int fallidas = 0;
+                LocalDateTime ahora = LocalDateTime.now();
+                // Claim seguro y concurrente: solo filas estado I sin reintento programado en el futuro,
+                // bloqueadas a nivel de fila (FOR UPDATE SKIP LOCKED).
+                var facturas = facturaR.reclamarLoteParaProcesar("I", ahora, retryPolicy.getMaxAttempts(), LOTE);
 
                 if (facturas.isEmpty()) {
                     log.info("No hay facturas pendientes estado=I");
-                    logTaskEnd("automatizacionEnvioFacturasElectonicas", threadName, started, 0, 0, 0);
+                    logTaskEnd("automatizacionEnvioFacturasElectonicas", threadName, started, 0, null);
                     return;
                 }
 
+                Metricas m = new Metricas();
                 for (Factura f : facturas) {
+                    long t0 = System.currentTimeMillis();
+                    StringBuilder estados = new StringBuilder();
                     try {
-                        procesarFacturaEnNuevaTx(f.getIdfactura());
-                        exitosas++;
+                        ResultadoSri res = reclamarYProcesar(f.getIdfactura());
+                        if (res == null) {
+                            m.omitidas++;
+                            m.logFactura(f.getIdfactura(), "OMITIDA", 0);
+                        } else {
+                            m.acumular(res);
+                            m.logFactura(f.getIdfactura(), String.valueOf(res.getTipo()), res.getDuracionMs());
+                        }
                     } catch (Exception ex) {
-                        fallidas++;
+                        m.erroresNoRecuperables++;
+                        m.logFactura(f.getIdfactura(), "EXCEPCION", System.currentTimeMillis() - t0);
+                        sriIntentoService.registrarIntento(f.getIdfactura(),
+                                clasificarExcepcion(ex),
+                                "FACTURA", f.getClaveacceso(), ambienteTexto(),
+                                ServicioSri.RECEPCION.name(), null, workerId,
+                                sriIntentoService.nuevoCorrelationId(), LocalDateTime.now());
                         log.error("Error procesando factura idfactura={}", f.getIdfactura(), ex);
                     }
                 }
 
+                m.logResumen();
                 log.info("Lote procesado total={}", facturas.size());
-                logTaskEnd("automatizacionEnvioFacturasElectonicas", threadName, started, facturas.size(), exitosas, fallidas);
+                logTaskEnd("automatizacionEnvioFacturasElectonicas", threadName, started, facturas.size(), m);
             } catch (Exception e) {
                 logTaskError("automatizacionEnvioFacturasElectonicas", threadName, e);
                 log.error("Error en la tarea programada automatizacionEnvioFacturasElectonicas", e);
@@ -109,119 +148,303 @@ public class EnvioSriBatchService {
             "YAHOO.COM"
             // agrega más: "hotmail.com", "yahoo.com", etc.
     );
-//Este servicio sirve para conultar las facturas en estado C y volver a buscar el xml auotizado en el sri
-    @Transactional
-    @Scheduled(cron = "${sri.scheduler.recuperacion-xml.cron}")
+// Consulta los comprobantes en estado C/O para recuperar el XML autorizado.
     public void automatizacionConsultarXml() {
         long started = System.currentTimeMillis();
         String threadName = Thread.currentThread().getName();
         logTaskStart("automatizacionConsultarXml", threadName);
         log.info("Iniciando consulta de XML pendientes");
         try {
-            var limit = PageRequest.of(0, LOTE);
-            List<Factura> facturas = new ArrayList<>();
-            facturas.addAll(facturaR.findByEstadoNormalizado("C", limit).getContent());
-            facturas.addAll(facturaR.findByEstadoNormalizado("O", limit).getContent());
-            int exitosas = 0;
-            int fallidas = 0;
+            LocalDateTime ahora = LocalDateTime.now();
+            // Claim seguro y concurrente (state C y O), corto y sin transacción de lote.
+            var facturasReclamadas = new ArrayList<Factura>();
+            facturasReclamadas.addAll(facturaR.reclamarLoteParaProcesar("C", ahora, retryPolicy.getMaxAttempts(), LOTE));
+            facturasReclamadas.addAll(facturaR.reclamarLoteParaProcesar("O", ahora, retryPolicy.getMaxAttempts(), LOTE));
             Map<Long, Factura> unicas = new LinkedHashMap<>();
-            for (Factura factura : facturas) {
+            for (Factura factura : facturasReclamadas) {
                 unicas.put(factura.getIdfactura(), factura);
             }
-            facturas = new ArrayList<>(unicas.values());
+            List<Factura> facturas = new ArrayList<>(unicas.values());
 
             if (facturas.isEmpty()) {
                 log.info("No hay facturas pendientes para recuperacion de XML");
-                logTaskEnd("automatizacionConsultarXml", threadName, started, 0, 0, 0);
+                logTaskEnd("automatizacionConsultarXml", threadName, started, 0, null);
                 return;
             }
 
+            Metricas m = new Metricas();
             for (Factura f : facturas) {
+                long t0 = System.currentTimeMillis();
                 try {
-                    String claveAcceso = f.getClaveacceso();
-                    if (f.getXmlautorizado() != null && !f.getXmlautorizado().isBlank()) {
-                        if ("O".equalsIgnoreCase(safeStr(f.getEstado()))) {
-                            reintentarEnvioCorreoFactura(f);
-                        } else {
-                            f.setEstado("A");
-                            f.setErrores(null);
-                            facturaR.save(f);
-                        }
-                        exitosas++;
-                        continue;
-                    }
-                    RespuestaComprobante rc = sendXmlToSriService.consultarAutorizacionHastaEncontrarXmlPorClave(
-                            claveAcceso,
-                            Math.max(pollIntentos, 20),
-                            Math.max(pollDelayMs, 4000L),
-                            Math.max(pollDelayMs * 4, 15000L),
-                            1.5
-                    );
-                    String xmlRecuperado = sendXmlToSriService.extraerXmlAutorizado(rc);
-                    AutorizacionSriResult resultado;
-                    if (xmlRecuperado != null && !xmlRecuperado.isBlank()) {
-                        resultado = new AutorizacionSriResult();
-                        resultado.setAutorizado(true);
-                        resultado.setXmlAutorizado(xmlRecuperado);
-                        resultado.setMensaje("AUTORIZADO");
-                    } else {
-                        resultado = sendXmlToSriService.consultar_Autorizacion(claveAcceso);
-                    }
-
-                    if (resultado.isAutorizado()
-                            && resultado.getXmlAutorizado() != null
-                            && !resultado.getXmlAutorizado().isBlank()) {
-                        // 👉 Guardas el XML autorizado
-                        f.setXmlautorizado(resultado.getXmlAutorizado());
-
-                        // 👉 Campo autorizado (ajusta según tu tipo de dato)
-                        // Si es Boolean:
-                       // f.set(true);
-                        // Si es String tipo 'S'/'N': f.setAutorizado("S");
-
-                        // 👉 Si manejas estado de factura
-                        f.setEstado("A"); // Autorizada
-
-                        // 👉 Si tienes fecha de autorización en la entidad
-                        if (resultado.getFechaAutorizacion() != null) {
-                            f.setErrores(String.valueOf(resultado.getFechaAutorizacion()));
-                        }
-
-                        // Limpia errores si los hubiera
-                        f.setErrores(null);
-
-                        log.info("Factura autorizada y XML guardado idfactura={}", f.getIdfactura());
-                    } else {
-                        // No autorizado, en proceso o error
-                        String msg = resultado.getMensaje() != null
-                                ? resultado.getMensaje()
-                                : "No autorizado / sin XML";
-
-                        f.setEstado("C"); // o "N"
-                        f.setErrores(msg);
-
-                        log.warn("Factura no autorizada idfactura={} motivo={}", f.getIdfactura(), msg);
-                    }
-
-                    facturaR.save(f);
-                    if ("A".equalsIgnoreCase(safeStr(f.getEstado()))) {
-                        exitosas++;
-                    } else {
-                        fallidas++;
-                    }
-
+                    ResultadoSri res = consultarYRecuperarXml(f);
+                    String tipo = res == null ? "OMITIDA" : String.valueOf(res.getTipo());
+                    m.acumularNullSafe(res);
+                    m.logFactura(f.getIdfactura(), tipo, res == null ? 0 : res.getDuracionMs());
                 } catch (Exception ex) {
-                    fallidas++;
+                    m.erroresNoRecuperables++;
+                    m.logFactura(f.getIdfactura(), "EXCEPCION", System.currentTimeMillis() - t0);
                     log.error("Error procesando factura idfactura={}", f.getIdfactura(), ex);
                 }
             }
-
-            logTaskEnd("automatizacionConsultarXml", threadName, started, facturas.size(), exitosas, fallidas);
+            m.logResumen();
+            logTaskEnd("automatizacionConsultarXml", threadName, started, facturas.size(), m);
         } catch (RuntimeException e) {
             logTaskError("automatizacionConsultarXml", threadName, e);
             throw new RuntimeException(e);
         }
     }
+
+    private ResultadoSri consultarYRecuperarXml(Factura f) {
+        String claveAcceso = f.getClaveacceso();
+        String correlationId = sriIntentoService.nuevoCorrelationId();
+        LocalDateTime inicioIntento = LocalDateTime.now();
+
+        if (f.getXmlautorizado() != null && !f.getXmlautorizado().isBlank()) {
+            if ("O".equalsIgnoreCase(safeStr(f.getEstado()))) {
+                reintentarEnvioCorreoFactura(f);
+            } else {
+                f.setEstado("A");
+                f.setErrores(null);
+                facturaR.save(f);
+            }
+            return ResultadoSri.builder()
+                    .tipo(TipoResultadoSri.AUTORIZADA)
+                    .servicio(ServicioSri.RECUPERACION.name())
+                    .build();
+        }
+
+        ResultadoSri ultimo = null;
+        int intentos = Math.max(pollIntentos, 1);
+        for (int i = 1; i <= intentos; i++) {
+            ultimo = sendXmlToSriService.consultarAutorizacionConResultado(claveAcceso);
+            sriIntentoService.registrarIntento(f.getIdfactura(), ultimo, "FACTURA", claveAcceso,
+                    ambienteTexto(), ServicioSri.AUTORIZACION.name(), null, workerId, correlationId, inicioIntento);
+            if (ultimo.getTipo() != TipoResultadoSri.SIN_RESPUESTA) {
+                break;
+            }
+            if (i < intentos) {
+                try {
+                    Thread.sleep(pollDelayMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        if (ultimo == null) return null;
+        return aplicarEstadoConsultado(f, ultimo);
+    }
+
+    /**
+     * Aplica a la factura el estado que el resultado de una CONSULTA de
+     * autorización determina: AUTORIZADA -&gt; A (+XML), NO_AUTORIZADA -&gt; N,
+     * cualquier otra cosa -&gt; se queda en C (pendiente, reintento gateado).
+     */
+    private ResultadoSri aplicarEstadoConsultado(Factura f, ResultadoSri ultimo) {
+        switch (ultimo.getTipo()) {
+            case AUTORIZADA:
+                f.setXmlautorizado(ultimo.getXmlAutorizado());
+                f.setEstado("A");
+                f.setErrores(null);
+                facturaR.save(f);
+                log.info("Factura autorizada y XML guardado idfactura={}", f.getIdfactura());
+                break;
+            case NO_AUTORIZADA:
+                f.setEstado("N");
+                f.setErrores(trunc(ultimo.getMensaje(), 1500));
+                facturaR.save(f);
+                log.warn("Factura no autorizada idfactura={} motivo={}", f.getIdfactura(), ultimo.getMensaje());
+                break;
+            default:
+                // Pendiente o transitorio: sigue en C; el reintento queda programado en la bitácora.
+                f.setEstado("C");
+                f.setErrores(trunc(mensaje(ultimo), 1500));
+                facturaR.save(f);
+                log.info("Factura sigue pendiente idfactura={} tipo={}", f.getIdfactura(), ultimo.getTipo());
+                break;
+        }
+        return ultimo;
+    }
+
+    /**
+     * Recupera bloqueos abandonados (estado P con proceso inactivo): consulta la
+     * autorización; si el comprobante ya fue autorizado lo cierra, si NO AUTORIZADO
+     * lo marca, y si sigue pendiente lo devuelve a I (el reintento queda gated por la
+     * fecha_proximo_intento registrada en sri_intento_comunicacion).
+     */
+    public void recuperarBloqueosAbandonados() {
+        long started = System.currentTimeMillis();
+        String threadName = Thread.currentThread().getName();
+        logTaskStart("recuperarBloqueosAbandonados", threadName);
+        try {
+            LocalDateTime umbral = LocalDateTime.now().minusMinutes(lockTimeoutMinutes);
+            var bloqueados = facturaR.reclamarBloqueosAbandonados("P", umbral, retryPolicy.getMaxAttempts(), LOTE);
+
+            if (bloqueados.isEmpty()) {
+                log.info("No hay bloqueos abandonados que recuperar");
+                logTaskEnd("recuperarBloqueosAbandonados", threadName, started, 0, null);
+                return;
+            }
+
+            Metricas m = new Metricas();
+            for (Factura f : bloqueados) {
+                long t0 = System.currentTimeMillis();
+                try {
+                    String clave = f.getClaveacceso();
+                    String correlationId = sriIntentoService.nuevoCorrelationId();
+                    LocalDateTime inicioIntento = LocalDateTime.now();
+                    ResultadoSri ultimo = null;
+                    for (int i = 1; i <= Math.max(pollIntentos, 1); i++) {
+                        ultimo = sendXmlToSriService.consultarAutorizacionConResultado(clave);
+                        sriIntentoService.registrarIntento(f.getIdfactura(), ultimo, "FACTURA", clave,
+                                ambienteTexto(), ServicioSri.RECUPERACION.name(), null, workerId,
+                                correlationId, inicioIntento);
+                        if (ultimo.getTipo() != TipoResultadoSri.SIN_RESPUESTA) break;
+                        if (i < Math.max(pollIntentos, 1)) {
+                            try {
+                                Thread.sleep(pollDelayMs);
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            }
+                        }
+                    }
+
+                    if (ultimo == null) {
+                        m.erroresNoRecuperables++;
+                        continue;
+                    }
+                    Factura actual = facturaR.findById(f.getIdfactura()).orElse(null);
+                    if (actual == null) continue;
+
+                    switch (ultimo.getTipo()) {
+                        case AUTORIZADA:
+                            actual.setXmlautorizado(ultimo.getXmlAutorizado());
+                            actual.setEstado("A");
+                            actual.setErrores(null);
+                            facturaR.save(actual);
+                            log.info("Bloqueo recuperado: autorizado idfactura={}", f.getIdfactura());
+                            break;
+                        case NO_AUTORIZADA:
+                            actual.setEstado("N");
+                            actual.setErrores(trunc(ultimo.getMensaje(), 1500));
+                            facturaR.save(actual);
+                            log.warn("Bloqueo recuperado: no autorizado idfactura={}", f.getIdfactura());
+                            break;
+                        default:
+                            // Sigue sin autorización: volver a I pero con reintento gated.
+                            actual.setEstado("I");
+                            actual.setErrores(trunc(mensaje(ultimo), 1500));
+                            facturaR.save(actual);
+                            log.info("Bloqueo recuperado: sin autorización aun, reenviar gated idfactura={} tipo={}",
+                                    f.getIdfactura(), ultimo.getTipo());
+                            break;
+                    }
+                    m.acumular(ultimo);
+                } catch (Exception ex) {
+                    m.erroresNoRecuperables++;
+                    m.logFactura(f.getIdfactura(), "EXCEPCION", System.currentTimeMillis() - t0);
+                    log.error("Error recuperando bloqueo idfactura={}", f.getIdfactura(), ex);
+                }
+            }
+            m.logResumen();
+            logTaskEnd("recuperarBloqueosAbandonados", threadName, started, bloqueados.size(), m);
+        } catch (Exception e) {
+            logTaskError("recuperarBloqueosAbandonados", threadName, e);
+            log.error("Error en la tarea programada recuperarBloqueosAbandonados", e);
+        }
+    }
+    /**
+     * Motor de reintentos programados (desacoplado del ciclo de envío):
+     * procesa los documentos cuyo reintento ya venció (fecha_proximo_intento &lt;= ahora)
+     * consultando la autorización con UN SOLO intento por ciclo; el siguiente reintento
+     * queda gateado por la nueva fecha_proximo_intento que registra la bitácora.
+     *
+     * Además cierra los documentos que agotaron el máximo de intentos automáticos:
+     * los marca como NO reintentables y los pasa a estado M (revisión manual), de
+     * manera que los schedulers de envío/consulta ya no los vuelven a reclamar.
+     */
+    public void automatizacionReintentosProgramados() {
+        if (!retryPolicy.isEnabled()) {
+            log.info("Motor de reintentos deshabilitado (sri.retry.enabled=false)");
+            return;
+        }
+        long started = System.currentTimeMillis();
+        String threadName = Thread.currentThread().getName();
+        logTaskStart("automatizacionReintentosProgramados", threadName);
+        Metricas m = new Metricas();
+        int cerrados = 0;
+        int consultados = 0;
+        int saltados = 0;
+        try {
+            LocalDateTime ahora = LocalDateTime.now();
+            int maxIntentos = retryPolicy.getMaxAttempts();
+
+            // 1) Cerrar documentos que agotaron el máximo de intentos automáticos.
+            for (SriIntentoComunicacion intento : sriIntentoService.reintentosAgotados(maxIntentos)) {
+                Long id = intento.getDocumentoId();
+                Factura f = facturaR.findById(id).orElse(null);
+                sriIntentoService.marcarNoReintentable(id);
+                if (f != null && Arrays.asList("I", "C", "O").contains(safeStr(f.getEstado()).toUpperCase())) {
+                    f.setEstado("M");
+                    f.setErrores(trunc("Reintentos agotados: " + maxIntentos
+                            + " intentos automáticos sin resultado definitivo.", 1500));
+                    facturaR.save(f);
+                }
+                log.warn("[SRI][REINTENTO] Documento idfactura={} agotó {} intentos -> cierre manual (M)",
+                        id, maxIntentos);
+                cerrados++;
+            }
+
+            // 2) Reintentos vencidos con cupo disponible: un solo intento de consulta por ciclo.
+            for (SriIntentoComunicacion intento : sriIntentoService.reintentosVencidos(ahora)) {
+                Long id = intento.getDocumentoId();
+                SriReintentoDecision decision = SriReintentoDecider.decidir(
+                        intento.isReintentable(), intento.getNumeroIntento(), maxIntentos,
+                        intento.getFechaProximoIntento(), ahora);
+                if (decision != SriReintentoDecision.CONSULTAR) {
+                    if (decision == SriReintentoDecision.AGOTADO) {
+                        cerrados++;
+                        sriIntentoService.marcarNoReintentable(id);
+                    }
+                    continue;
+                }
+                if (consultados >= LOTE * 2) {
+                    break;
+                }
+                Factura f = facturaR.findById(id).orElse(null);
+                if (f == null || "P".equalsIgnoreCase(safeStr(f.getEstado()))) {
+                    saltados++;
+                    continue;
+                }
+                try {
+                    long t0 = System.currentTimeMillis();
+                    ResultadoSri res = sendXmlToSriService.consultarAutorizacionConResultado(f.getClaveacceso());
+                    sriIntentoService.registrarIntento(id, res, "FACTURA", f.getClaveacceso(),
+                            ambienteTexto(), ServicioSri.AUTORIZACION.name(), "reintentos", workerId,
+                            sriIntentoService.nuevoCorrelationId(), LocalDateTime.now());
+                    aplicarEstadoConsultado(f, res);
+                    m.acumularNullSafe(res);
+                    m.logFactura(id, res == null ? "SIN_RESULTADO" : String.valueOf(res.getTipo()),
+                            System.currentTimeMillis() - t0);
+                    consultados++;
+                } catch (Exception ex) {
+                    m.erroresNoRecuperables++;
+                    log.error("Error consultando reintento idfactura={}", id, ex);
+                }
+            }
+
+            log.info("[SRI][REINTENTO] cerrados={} consultados={} saltados={}",
+                    cerrados, consultados, saltados);
+            m.logResumen();
+            logTaskEnd("automatizacionReintentosProgramados", threadName, started, consultados + cerrados, m);
+        } catch (Exception e) {
+            logTaskError("automatizacionReintentosProgramados", threadName, e);
+            log.error("Error en la tarea programada automatizacionReintentosProgramados", e);
+        }
+    }
+
     private boolean esCorreoPermitido(String email) {
         if (email == null) return false;
 
@@ -252,16 +475,17 @@ public class EnvioSriBatchService {
 
 
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void procesarFacturaEnNuevaTx(Long idFactura) {
-        // 1) Releer y bloquear lógicamente
+    public ResultadoSri procesarFacturaEnNuevaTx(Long idFactura) {
+        String correlationId = sriIntentoService.nuevoCorrelationId();
+        LocalDateTime inicioIntento = LocalDateTime.now();
+        // Releer la factura ya reclamada (estado P). El claim (I->P) se ejecutó en su
+        // propia transacción corta: aquí NO se mantiene una transacción abierta durante
+        // las llamadas SOAP. Cada persistencia usa turnos cortos por repositorio.
         Factura f = facturaR.findById(idFactura).orElseThrow();
-        if (!"I".equals(f.getEstado())) {
-            log.info("Factura ya no esta en estado I idfactura={} estadoActual={}", idFactura, f.getEstado());
-            return;
+        if (!"P".equals(f.getEstado())) {
+            log.info("Factura ya no esta en estado P idfactura={} estadoActual={}", idFactura, f.getEstado());
+            return null;
         }
-        f.setEstado("P");
-        facturaR.saveAndFlush(f);
 
         try {
             // 2) Generar XML desde la entidad
@@ -284,11 +508,13 @@ public class EnvioSriBatchService {
                 sendXmlToSriService.setAmbienteFromXml(xmlFirmado);
             }
 
-            // 6) Enviar a recepción
-            RespuestaSolicitud recepcion = sendXmlToSriService.enviarFacturaFirmadaTxt(xmlFirmado);
-            if (recepcion == null) throw new IllegalStateException("Respuesta de recepción nula");
+            // 6) Enviar a recepción (clasificado; nunca lanza por errores de red)
+            ResultadoSri resRecepcion = sendXmlToSriService.enviarComprobanteConResultado(xmlFirmado);
+            sriIntentoService.registrarIntento(idFactura, resRecepcion, "FACTURA", f.getClaveacceso(),
+                    ambienteTexto(), ServicioSri.RECEPCION.name(), null, workerId, correlationId, inicioIntento);
 
-            if ("RECIBIDA".equalsIgnoreCase(recepcion.getEstado())) {
+            ResultadoSri retorno = resRecepcion;
+            if (resRecepcion.getTipo() == TipoResultadoSri.RECIBIDA) {
                 // 7) Polling de autorización
                 var rc = sendXmlToSriService.consultar_AutorizacionConEspera(
                         xmlFirmado,
@@ -354,7 +580,12 @@ public class EnvioSriBatchService {
                         f.setErrores("Factura autorizada, pero error generando PDF");
                         f.setEstado("O");
                         facturaR.save(f);
-                        return;
+                        retorno = ResultadoSri.builder()
+                                .tipo(TipoResultadoSri.AUTORIZADA)
+                                .mensaje("AUTORIZADO pero error generando PDF")
+                                .servicio(ServicioSri.AUTORIZACION.name())
+                                .build();
+                        return retorno;
                     }
 
                     byte[] pdfBytes = pdfStream.toByteArray();
@@ -510,6 +741,12 @@ public class EnvioSriBatchService {
                     }
 
                     facturaR.save(f);
+                    retorno = ResultadoSri.builder()
+                            .tipo(TipoResultadoSri.AUTORIZADA)
+                            .mensaje("AUTORIZADO")
+                            .servicio(ServicioSri.AUTORIZACION.name())
+                            .duracionMs(resRecepcion.getDuracionMs())
+                            .build();
 
                 } else {
                     // ==========================
@@ -520,24 +757,58 @@ public class EnvioSriBatchService {
                     // Puedes guardar XML de error o solo mensajes:
                     f.setErrores(trunc(info.mensajesConcatenados(), 1500));
                     facturaR.save(f);
+                    retorno = ResultadoSri.builder()
+                            .tipo(TipoResultadoSri.NO_AUTORIZADA)
+                            .mensaje(info.mensajesConcatenados())
+                            .servicio(ServicioSri.AUTORIZACION.name())
+                            .build();
                 }
 
+                return retorno;
             } else {
-                // DEVUELTA en recepción
-                f.setEstado("M"); // tu estado para devuelta/observada
-                String errores = erroresRecepcion(recepcion);
-                f.setErrores(trunc(errores, 1500));
-                facturaR.save(f);
-                log.warn("Factura devuelta por recepcion SRI idfactura={} errores={}", f.getIdfactura(), errores);
+                // Recepción NO devolvió RECIBIDA: decidir según clasificación.
+                switch (resRecepcion.getTipo()) {
+                    case CLAVE_REGISTRADA:
+                        // No reenviar el comprobante: la clave ya fue registrada.
+                        f.setEstado("C"); // pendiente de autorización (se consulta en la tarea de recuperación)
+                        f.setErrores(trunc(mensaje(resRecepcion), 1500));
+                        facturaR.save(f);
+                        log.warn("Factura CLAVE ACCESO REGISTRADA idfactura={} -> estado C (solo consulta autorización)",
+                                f.getIdfactura());
+                        break;
+                    case ERROR_TRANSITORIO:
+                    case SIN_RESPUESTA:
+                        // Error de red/incierto: estado C con reintento programado
+                        // (fecha_proximo_intento ya quedó en sri_intento_comunicacion).
+                        f.setEstado("C");
+                        f.setErrores(trunc(mensaje(resRecepcion), 1500));
+                        facturaR.save(f);
+                        log.warn("Factura con comunicacion transitoria idfactura={} tipo={} -> estado C",
+                                f.getIdfactura(), resRecepcion.getTipo());
+                        break;
+                    default:
+                        // DEVUELTA u otro resultado definitivo: NO reintentar.
+                        f.setEstado("M");
+                        f.setErrores(trunc(mensaje(resRecepcion), 1500));
+                        facturaR.save(f);
+                        log.warn("Factura devuelta por recepcion SRI idfactura={} errores={}",
+                                f.getIdfactura(), mensaje(resRecepcion));
+                        break;
+                }
+                return resRecepcion;
             }
 
         } catch (Exception ex) {
-            // Error inesperado → devolver a I y aumentar reintentos
+            // Clasificar el error técnico: NUNCA volver a "I" para reenviar ciegamente.
+            // Transitorio -> C (reintento programado), funcional -> M.
             log.error("Error inesperado en factura idfactura={}", idFactura, ex);
-
-            f.setEstado("I");
-            f.setErrores(ex.getMessage());
+            ResultadoSri res = clasificarExcepcion(ex);
+            sriIntentoService.registrarIntento(idFactura, res, "FACTURA", f.getClaveacceso(),
+                    ambienteTexto(), ServicioSri.RECEPCION.name(), null, workerId, correlationId, inicioIntento);
+            f.setEstado(res.isReintentable() ? "C" : "M");
+            f.setErrores(trunc(res.getExcepcion(), 1500));
             facturaR.save(f);
+            return res;
         }
     }
 
@@ -629,10 +900,15 @@ public class EnvioSriBatchService {
         log.info("[SCHEDULER][{}] INICIO {} @ {}", threadName, taskName, LocalDateTime.now());
     }
 
-    private void logTaskEnd(String taskName, String threadName, long started, int totalDetectado, int exitosas, int fallidas) {
+    private void logTaskEnd(String taskName, String threadName, long started, int totalDetectado, Metricas m) {
         long durationMs = System.currentTimeMillis() - started;
-        log.info("[SCHEDULER][{}] FIN {} | detectados={} | exitosas={} | fallidas={} | duracionMs={}",
-                threadName, taskName, totalDetectado, exitosas, fallidas, durationMs);
+        if (m == null) {
+            log.info("[SCHEDULER][{}] FIN {} | detectados={} | sin_metricas | duracionMs={}",
+                    threadName, taskName, totalDetectado, durationMs);
+            return;
+        }
+        log.info("[SCHEDULER][{}] FIN {} | duracionMs={} | {}",
+                threadName, taskName, durationMs, m.resumen());
     }
 
     private void logTaskError(String taskName, String threadName, Exception e) {
@@ -649,35 +925,131 @@ public class EnvioSriBatchService {
             return s.length() <= max ? s : s.substring(0, max);
         }
 
-    // Extrae mensajes legibles de RespuestaSolicitud (recepción SRI)
-    private static String erroresRecepcion(RespuestaSolicitud rs) {
-        if (rs == null || rs.getComprobantes() == null || rs.getComprobantes().getComprobante() == null) {
-            return "Respuesta de recepción sin detalles de comprobantes";
+        private static String mensaje(ResultadoSri r) {
+            if (r == null || (r.getMensaje() == null || r.getMensaje().isBlank())) return "Sin detalle";
+            return r.getMensaje();
         }
-        StringBuilder sb = new StringBuilder();
-        for (var comp : rs.getComprobantes().getComprobante()) {
-            String clave = nonNull(comp.getClaveAcceso());
-            if (sb.length() > 0) sb.append(" || ");
-            sb.append("Clave: ").append(clave.isEmpty() ? "-" : clave);
 
-            if (comp.getMensajes() != null && comp.getMensajes().getMensaje() != null) {
-                for (var m : comp.getMensajes().getMensaje()) {
-                    sb.append(" | [")
-                            .append(nonNull(m.getIdentificador()))
-                            .append("] ")
-                            .append(nonNull(m.getMensaje()));
-                    String ia = nonNull(m.getInformacionAdicional());
-                    if (!ia.isEmpty()) sb.append(" (").append(ia).append(")");
-                    String tipo = nonNull(m.getTipo()); // ERROR/INFO/ADVERTENCIA
-                    if (!tipo.isEmpty()) sb.append(" <").append(tipo).append(">");
-                }
+        private String ambienteTexto() {
+            return sendXmlToSriService.getAmbiente() == 2 ? "PRODUCCION" : "PRUEBAS";
+        }
+
+        private ResultadoSri clasificarExcepcion(Exception ex) {
+            return clasificador.clasificarExcepcion(ex, ServicioSri.RECEPCION.name(), 0L);
+        }
+
+        private TransactionTemplate nuevaTransaccion() {
+            TransactionTemplate tt = new TransactionTemplate(transactionManager);
+            tt.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            return tt;
+        }
+
+        /** Claim: estado I->P + intento CLAIM en una única transacción corta. */
+        private boolean claimFactura(Long idFactura) {
+            try {
+                return Boolean.TRUE.equals(nuevaTransaccion().execute(status -> {
+                    Factura f = facturaR.findById(idFactura).orElse(null);
+                    if (f == null || !"I".equals(f.getEstado())) {
+                        return false;
+                    }
+                    f.setEstado("P");
+                    facturaR.save(f);
+                    sriIntentoService.registrarIntento(idFactura, null, "FACTURA", f.getClaveacceso(),
+                            ambienteTexto(), ServicioSri.CLAIM.name(), null, workerId,
+                            sriIntentoService.nuevoCorrelationId(), LocalDateTime.now());
+                    return true;
+                }));
+            } catch (Exception ex) {
+                log.error("No se pudo reclamar factura idfactura={}", idFactura, ex);
+                return false;
             }
         }
-        if (sb.length() == 0) return "DEVUELTA sin mensajes";
-        return sb.toString();
-    }
 
-    private static String nonNull(String s) { return s == null ? "" : s.trim(); }
+        /** Reclama la factura (TX corta) y luego la procesa sin transacción abierta. */
+        private ResultadoSri reclamarYProcesar(Long idFactura) {
+            if (!claimFactura(idFactura)) {
+                return null;
+            }
+            return procesarFacturaEnNuevaTx(idFactura);
+        }
+
+    // ============================================================
+    // Métricas reales del lote: procesar NO es sinónimo de exitoso.
+    // ============================================================
+    private static final class Metricas {
+        int detectadas;
+        int completadas;
+        int recibidasSri;
+        int pendientesAutorizacion;
+        int autorizadas;
+        int noAutorizadas;
+        int devueltas;
+        int claveRegistrada;
+        int erroresTransitorios;
+        int erroresNoRecuperables;
+        int reintentosProgramados;
+        int omitidas;
+
+        void acumular(ResultadoSri res) {
+            if (res == null) {
+                omitidas++;
+                return;
+            }
+            detectadas++;
+            if (res.getTipo() == null) return;
+            switch (res.getTipo()) {
+                case RECIBIDA -> recibidasSri++;
+                case AUTORIZADA -> {
+                    autorizadas++;
+                    completadas++;
+                }
+                case NO_AUTORIZADA -> noAutorizadas++;
+                case DEVUELTA -> devueltas++;
+                case CLAVE_REGISTRADA -> {
+                    claveRegistrada++;
+                    pendientesAutorizacion++;
+                }
+                case ERROR_TRANSITORIO -> {
+                    erroresTransitorios++;
+                    reintentosProgramados++;
+                    pendientesAutorizacion++;
+                }
+                case SIN_RESPUESTA -> {
+                    erroresTransitorios++;
+                    reintentosProgramados++;
+                    pendientesAutorizacion++;
+                }
+                default -> erroresNoRecuperables++;
+            }
+        }
+
+        void acumularNullSafe(ResultadoSri res) {
+            acumular(res);
+        }
+
+        void logFactura(Long idfactura, String resultado, long duracionMs) {
+            log.info("[BATCH][FACTURA] idfactura={} | resultado={} | duracionMs={}", idfactura, resultado, duracionMs);
+        }
+
+        String resumen() {
+            return "detectadas=" + detectadas
+                    + " | completadas=" + completadas
+                    + " | recibidasSri=" + recibidasSri
+                    + " | autorizadas=" + autorizadas
+                    + " | noAutorizadas=" + noAutorizadas
+                    + " | devueltas=" + devueltas
+                    + " | claveRegistrada=" + claveRegistrada
+                    + " | pendientesAutorizacion=" + pendientesAutorizacion
+                    + " | erroresTransitorios=" + erroresTransitorios
+                    + " | erroresNoRecuperables=" + erroresNoRecuperables
+                    + " | reintentosProgramados=" + reintentosProgramados
+                    + " | omitidas=" + omitidas;
+        }
+
+        void logResumen() {
+            log.info("[BATCH][RESUMEN] {}", resumen());
+        }
+    }
 
 }
 

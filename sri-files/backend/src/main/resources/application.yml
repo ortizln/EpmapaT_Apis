@@ -57,6 +57,25 @@ sri:
       cron: ${SRI_SCHEDULER_ENVIO_FACTURAS_CRON:0 */1 * * * *}
     recuperacion-xml:
       cron: ${SRI_SCHEDULER_RECUPERACION_XML_CRON:30 */3 * * * *}
+    recuperacion-bloqueos:
+      cron: ${SRI_SCHEDULER_RECUPERACION_BLOQUEOS_CRON:0 */5 * * * *}
+    reintentos:
+      cron: ${SRI_SCHEDULER_REINTENTOS_CRON:45 */2 * * * *}
+  retry:
+    enabled: ${SRI_RETRY_ENABLED:false}
+    max-attempts: ${SRI_RETRY_MAX_ATTEMPTS:6}
+    delays-seconds: ${SRI_RETRY_DELAYS_SECONDS:60,300,900,1800,3600}
+  circuit-breaker:
+    enabled: ${SRI_CIRCUIT_BREAKER_ENABLED:false}
+    failure-threshold: ${SRI_CIRCUIT_BREAKER_FAILURE_THRESHOLD:5}
+    open-millis: ${SRI_CIRCUIT_BREAKER_OPEN_MILLIS:60000}
+    half-open-max-calls: ${SRI_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS:1}
+  timeout:
+    connect-ms: ${SRI_TIMEOUT_CONNECT_MS:15000}
+    read-ms: ${SRI_TIMEOUT_READ_MS:30000}
+  concurrency:
+    worker-id: ${SRI_CONCURRENCY_WORKER_ID:}
+    lock-timeout-minutes: ${SRI_CONCURRENCY_LOCK_TIMEOUT_MINUTES:15}
   ambiente: 2
   polling:
     attempts: 40
